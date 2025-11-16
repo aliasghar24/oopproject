@@ -10,13 +10,98 @@
 using namespace std;
 
 const string FILE_PATH = "Students.txt";
+const string ORDERS_FILE = "Orders.txt";
 
 class Item {
 public:
     string name;
     double price;
+    int quantity;
 
-    Item(string n = "", double p = 0) : name(n), price(p) {}
+    Item(string n = "", double p = 0, int q = 5) : name(n), price(p), quantity(q) {}
+};
+
+class CustomSandwich {
+public:
+    string bread, protein, veggies, sauce, extras;
+    double price;
+    CustomSandwich() : price(0) {}
+
+    Item buildSandwich() {
+        cout << "\n====== MAKE YOUR OWN SANDWICH ======\n";
+
+        cout << "Choose Bread:\n1. White (Rs. 50)\n2. Brown (Rs. 60)\n3. Multigrain (Rs. 80)\n";
+        int b; cin >> b;
+        if (b == 1) {
+            bread = "White"; price += 50;
+        }
+        else if (b == 2) {
+            bread = "Brown"; price += 60;
+        }
+        else {
+            bread = "Multigrain"; price += 80;
+        }
+
+        cout << "\nChoose Protein:\n1. Chicken (Rs. 150)\n2. Beef (Rs. 200)\n3. Egg (Rs. 70)\n4. No protein\n";
+        int p; cin >> p;
+        if (p == 1) {
+            protein = "Chicken"; price += 150;
+        }
+        else if (p == 2) {
+            protein = "Beef"; price += 200;
+        }
+        else if (p == 3) {
+            protein = "Egg"; price += 70;
+        }
+        else {
+            protein = "None";
+        }
+
+        cout << "\nChoose Veggies:\n1. Lettuce (Rs. 40)\n2. Cucumber (Rs. 50)\n3. Olives (Rs. 30)\n4. Onions (Rs. 20)\n5. No Veggies\n";
+        int v; cin >> v;
+        if (v == 1) {
+            veggies = "Lettuce"; price += 40;
+        }
+        else if (v == 2) {
+            veggies = "Cucumber"; price += 50;
+        }
+        else if (v == 3) {
+            veggies = "Olives"; price += 30;
+        }
+        else if (v == 4) {
+            veggies = "Onions"; price += 20;
+        }
+        else {
+            veggies = "None";
+        }
+
+        cout << "\nChoose Sauce (Rs. 20):\n1. Mayo\n2. Garlic\n3. Chipotle\n4. No Sauce\n";
+        int s; cin >> s;
+        if (s == 1) {
+            sauce = "Mayo"; price += 20;
+        }
+        else if (s == 2) {
+            sauce = "Garlic"; price += 20;
+        }
+        else if (s == 3) {
+            sauce = "Chipotle"; price += 20;
+        }
+        else {
+            sauce = "None";
+        }
+
+        cout << "\nAdd Extra Cheese? (Rs. 50)\n1. Yes\n2. No\n";
+        int e; cin >> e;
+        if (e == 1) {
+            extras = "Cheese"; price += 50;
+        }
+        else {
+            extras = "None";
+        }
+
+        string name = "Custom Sandwich (" + bread + ", " + protein + ", " + veggies + ", " + sauce + ", " + extras + ")";
+        return Item(name, price);
+    }
 };
 
 class Category {
@@ -46,6 +131,7 @@ public:
         savoury.addItem(Item("Sandwich", 350));
         savoury.addItem(Item("Burger", 400));
         savoury.addItem(Item("Pizza Slice", 450));
+        savoury.addItem(Item("Make Your Own Sandwich", 0));
         
         Category sweets("Sweets");
         sweets.addItem(Item("Cookie", 250));
@@ -124,6 +210,8 @@ public:
 class Order {
 public:
     string orderID;
+    string username;
+    string orderDate;
     vector<Item> items;
     double totalAmount;
     time_t orderTime;
@@ -132,8 +220,8 @@ public:
     string paymentMethod;
     string phoneNumber;
 
-    Order(string id, vector<Item> cartItems, double total, string method, string phone) 
-        : orderID(id), items(cartItems), totalAmount(total), readyTimeSeconds(1200), 
+    Order(string id, string user, string date, vector<Item> cartItems, double total, string method, string phone) 
+        : orderID(id), username(user), orderDate(date), items(cartItems), totalAmount(total), readyTimeSeconds(60), 
           status("Preparing"), paymentMethod(method), phoneNumber(phone) {
         orderTime = time(0);
     }
@@ -154,6 +242,8 @@ public:
 
     void displayOrder() {
         cout << "\nOrder ID: " << orderID;
+        cout << "\nCustomer: " << username;
+        cout << "\nDate: " << orderDate;
         cout << "\nItems:\n";
         for (size_t i = 0; i < items.size(); i++)
             cout << "  " << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price << "\n";
@@ -174,7 +264,7 @@ public:
     }
 
     void displayOrderCompact() {
-        cout << "\nOrder ID: " << orderID << " | Total: Rs. " << totalAmount;
+        cout << "\nOrder ID: " << orderID << " | Customer: " << username << " | Date: " << orderDate << " | Total: Rs. " << totalAmount;
         updateStatus();
         cout << " | Status: " << status;
         
@@ -194,7 +284,30 @@ private:
     int orderCounter;
 
 public:
-    OrderHistory() : orderCounter(1000) {}
+    OrderHistory() : orderCounter(1000) {
+        loadOrderCounterFromFile();
+        loadOrdersFromFile();
+    }
+
+    void loadOrderCounterFromFile() {
+        ifstream inFile(ORDERS_FILE);
+        if (!inFile) {
+            return;
+        }
+
+        string line;
+        while (getline(inFile, line)) {
+            if (line.empty()) continue;
+            size_t pos = 0;
+            string orderID = line.substr(0, line.find("||"));
+            string numberPart = orderID.substr(8);
+            int orderNum = stoi(numberPart.substr(3));
+            if (orderNum > orderCounter) {
+                orderCounter = orderNum;
+            }
+        }
+        inFile.close();
+    }
 
     string generateOrderID() {
         orderCounter++;
@@ -205,11 +318,107 @@ public:
         return string(dateStr) + "ORD" + to_string(orderCounter);
     }
 
-    void addOrder(vector<Item> items, double total, string method, string phone) {
+    string getCurrentDate() {
+        time_t now = time(0);
+        tm* timeinfo = localtime(&now);
+        char dateStr[20];
+        strftime(dateStr, sizeof(dateStr), "%d-%m-%Y %H:%M", timeinfo);
+        return string(dateStr);
+    }
+
+    void addOrder(vector<Item> items, double total, string method, string phone, string username) {
         string ordID = generateOrderID();
-        Order newOrder(ordID, items, total, method, phone);
+        string date = getCurrentDate();
+        Order newOrder(ordID, username, date, items, total, method, phone);
         orders.push_back(newOrder);
+        saveOrderToFile(newOrder);
         cout << "Order placed successfully! Order ID: " << ordID << "\n";
+    }
+
+    void saveOrderToFile(Order &order) {
+        ofstream outFile(ORDERS_FILE, ios::app);
+        if (!outFile) {
+            cout << "Error saving order!\n";
+            return;
+        }
+        outFile << order.orderID << "||" << order.username << "||" << order.orderDate << "||" 
+                << order.totalAmount << "||" << order.paymentMethod << "||" 
+                << order.phoneNumber << "||" << order.orderTime << "||";
+        for (size_t i = 0; i < order.items.size(); i++) {
+            string itemName = order.items[i].name;
+            for (char &c : itemName) {
+                if (c == '|' || c == ':' || c == ',') c = ' ';
+            }
+            outFile << itemName << ":" << order.items[i].price;
+            if (i < order.items.size() - 1) outFile << ",";
+        }
+        outFile << "\n";
+        outFile.close();
+    }
+
+    void loadOrdersFromFile() {
+        ifstream inFile(ORDERS_FILE);
+        if (!inFile) {
+            return;
+        }
+
+        string line;
+        while (getline(inFile, line)) {
+            if (line.empty()) continue;
+            
+            try {
+                size_t pos = 0;
+                
+                string orderID = line.substr(0, line.find("||"));
+                pos = line.find("||") + 2;
+                
+                string username = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                string orderDate = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                double totalAmount = stod(line.substr(pos, line.find("||", pos) - pos));
+                pos = line.find("||", pos) + 2;
+                
+                string paymentMethod = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                string phoneNumber = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                time_t orderTime = stol(line.substr(pos, line.find("||", pos) - pos));
+                pos = line.find("||", pos) + 2;
+                
+                string itemsStr = line.substr(pos);
+                vector<Item> items;
+                
+                size_t itemPos = 0;
+                while (itemPos < itemsStr.length()) {
+                    size_t commaPos = itemsStr.find(",", itemPos);
+                    if (commaPos == string::npos) commaPos = itemsStr.length();
+                    
+                    string itemStr = itemsStr.substr(itemPos, commaPos - itemPos);
+                    size_t colonPos = itemStr.rfind(":");
+                    
+                    if (colonPos != string::npos) {
+                        string itemName = itemStr.substr(0, colonPos);
+                        double itemPrice = stod(itemStr.substr(colonPos + 1));
+                        items.push_back(Item(itemName, itemPrice));
+                    }
+                    
+                    itemPos = commaPos + 1;
+                }
+                
+                Order loadedOrder(orderID, username, orderDate, items, totalAmount, paymentMethod, phoneNumber);
+                loadedOrder.orderTime = orderTime;
+                orders.push_back(loadedOrder);
+            } catch (const exception &e) {
+                cout << "Warning: Could not load order from file: " << e.what() << "\n";
+                continue;
+            }
+        }
+        inFile.close();
     }
 
     void displayOngoingOrders() {
@@ -313,6 +522,7 @@ public:
 class Student {
 public:
     string id;
+    string username;
     string password;
     string phoneNumber;
     string email;
@@ -325,6 +535,8 @@ public:
     void inputDetails() {
         cout << "Enter Student ID: ";
         cin >> id;
+        cout << "Enter Username: ";
+        cin >> username;
         cout << "Enter Password: ";
         cin >> password;
         
@@ -358,7 +570,7 @@ public:
             cout << "Error opening file!\n";
             return;
         }
-        outFile << id << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
+        outFile << id << " " << username << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
         outFile.close();
         cout << "Account saved successfully!\n";
     }
@@ -376,12 +588,13 @@ public:
             return false;
         }
 
-        string storedID, storedPass, storedPhone, storedEmail;
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
-        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if (loginID == storedID && loginPass == storedPass) {
-                cout << "Login successful! Welcome, " << loginID << "!\n";
+                cout << "Login successful! Welcome, " << storedUsername << "!\n";
                 id = storedID;
+                username = storedUsername;
                 password = storedPass;
                 phoneNumber = storedPhone;
                 email = storedEmail;
@@ -411,16 +624,16 @@ public:
             return false;
         }
 
-        string storedID, storedPass, storedPhone, storedEmail;
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
         bool found = false;
 
-        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if ((delID == storedID || delID == storedEmail) && delPass == storedPass) {
                 found = true;
                 cout << "Account deleted successfully!\n";
             } else {
-                outFile << storedID << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
+                outFile << storedID << " " << storedUsername << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
             }
         }
 
@@ -453,20 +666,52 @@ public:
 
     void updateBalanceInFile() {
         ifstream inFile(FILE_PATH);
-        ofstream outFile("temp.txt");
-        string storedID, storedPass;
+        if (!inFile) {
+            cout << "Error opening file for reading!\n";
+            return;
+        }
+
+        vector<string> ids, usernames, passwords, phones, emails;
+        vector<double> balances;
+
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
-        while (inFile >> storedID >> storedPass >> storedBalance) {
+
+        // Read entire file
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+
             if (storedID == id) {
-                storedBalance = balance.getBalance();
+                storedBalance = balance.getBalance();   // update only this student's balance
             }
-            outFile << storedID << " " << storedPass << " " << fixed << setprecision(2) << storedBalance << endl;
+
+            ids.push_back(storedID);
+            usernames.push_back(storedUsername);
+            passwords.push_back(storedPass);
+            phones.push_back(storedPhone);
+            emails.push_back(storedEmail);
+            balances.push_back(storedBalance);
         }
         inFile.close();
+
+        // Rewrite entire file
+        ofstream outFile(FILE_PATH);
+        if (!outFile) {
+            cout << "Error opening file for writing!\n";
+            return;
+        }
+
+        for (size_t i = 0; i < ids.size(); i++) {
+            outFile << ids[i] << " "
+                    << usernames[i] << " "
+                    << passwords[i] << " "
+                    << phones[i] << " "
+                    << emails[i] << " "
+                    << fixed << setprecision(2) << balances[i] << endl;
+        }
+
         outFile.close();
-        remove(FILE_PATH.c_str());
-        rename("temp.txt", FILE_PATH.c_str());
     }
+
 
     void checkout() {
         if (cart.isEmpty()) {
@@ -532,8 +777,8 @@ public:
             cout << "Please pay in cash at the counter.\n";
         }
 
-        orderHistory.addOrder(cart.items, total, paymentMethod, phoneNumber);
-        cout << "Your order will be ready in about 20 minutes!\n";
+        orderHistory.addOrder(cart.items, total, paymentMethod, phoneNumber, username);
+        cout << "Your order will be ready in about 1 minute!\n";
         balance.displayBalance();
         cart.clearCart();
         updateBalanceInFile();
@@ -608,7 +853,16 @@ int main() {
                     menu.displayCategoryMenu(cat - 1);
                     int itemNum = getValidInput(0, (int)menu.categories[cat - 1].items.size());
                     if (itemNum > 0) {
-                        student.cart.addItem(menu.categories[cat - 1].items[itemNum - 1]);
+                        Item selected = menu.categories[cat - 1].items[itemNum - 1];
+                        
+                        // Check if it's the custom sandwich option
+                        if (selected.name == "Make Your Own Sandwich") {
+                            CustomSandwich cs;
+                            Item custom = cs.buildSandwich();
+                            student.cart.addItem(custom);
+                        } else {
+                            student.cart.addItem(selected);
+                        }
                     }
                 }
                 break;
