@@ -4,12 +4,13 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
+#include <iomanip>
+#include <regex>
 using namespace std;
 
-// ======= File path for student data =======
-const string FILE_PATH = R"(Students.txt)";
+const string FILE_PATH = "Students.txt";
 
-// ======= Class representing an item in the menu =======
 class Item {
 public:
     string name;
@@ -18,7 +19,6 @@ public:
     Item(string n = "", double p = 0) : name(n), price(p) {}
 };
 
-// ======= Class representing a category in the menu =======
 class Category {
 public:
     string categoryName;
@@ -31,31 +31,27 @@ public:
     }
 
     void displayCategory() {
-        cout << "\n===== " << categoryName << " =====\n";
+        cout << "\n" << categoryName << ":\n";
         for (size_t i = 0; i < items.size(); i++)
             cout << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price << "\n";
     }
 };
 
-// ======= Class representing the menu =======
 class Menu {
 public:
     vector<Category> categories;
 
     Menu() {
-        // Create Savoury category
         Category savoury("Savoury");
         savoury.addItem(Item("Sandwich", 350));
         savoury.addItem(Item("Burger", 400));
         savoury.addItem(Item("Pizza Slice", 450));
         
-        // Create Sweets category
         Category sweets("Sweets");
         sweets.addItem(Item("Cookie", 250));
         sweets.addItem(Item("Brownie", 300));
         sweets.addItem(Item("Donut", 200));
         
-        // Create Beverages category
         Category beverages("Beverages");
         beverages.addItem(Item("Coffee", 400));
         beverages.addItem(Item("Pepsi", 60));
@@ -68,7 +64,7 @@ public:
     }
 
     void displayCategories() {
-        cout << "\n===== MENU CATEGORIES =====\n";
+        cout << "\nMenu Categories:\n";
         for (size_t i = 0; i < categories.size(); i++)
             cout << i + 1 << ". " << categories[i].categoryName << "\n";
     }
@@ -80,22 +76,21 @@ public:
     }
 };
 
-// ======= Class representing shopping cart =======
 class ShoppingCart {
 public:
     vector<Item> items;
 
     void addItem(Item item) {
         items.push_back(item);
-        cout << "✅ Added " << item.name << " to cart.\n";
+        cout << "Added " << item.name << " to cart.\n";
     }
 
     void removeItem(int index) {
         if (index < 0 || index >= (int)items.size()) {
-            cout << "❌ Invalid index.\n";
+            cout << "Invalid item index.\n";
             return;
         }
-        cout << "❌ Removed " << items[index].name << " from cart.\n";
+        cout << "Removed " << items[index].name << " from cart.\n";
         items.erase(items.begin() + index);
     }
 
@@ -107,14 +102,13 @@ public:
     }
 
     void displayCart() {
-        cout << "\n===== YOUR SHOPPING CART =====\n";
+        cout << "\nShopping Cart:\n";
         if (items.empty()) {
-            cout << "Cart is empty!\n";
+            cout << "Cart is empty.\n";
             return;
         }
         for (size_t i = 0; i < items.size(); i++)
             cout << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price << "\n";
-        cout << "------------------------------\n";
         cout << "Total: Rs. " << getTotal() << "\n";
     }
 
@@ -127,190 +121,204 @@ public:
     }
 };
 
-// ======= Base class for Payment (Abstract) =======
-class Payment {
-protected:
-    double amount;
-    string transactionID;
-
+class Order {
 public:
-    Payment(double amt) : amount(amt) {
-        srand(time(0));
-        transactionID = "TXN" + to_string(rand() % 100000);
+    string orderID;
+    vector<Item> items;
+    double totalAmount;
+    time_t orderTime;
+    int readyTimeSeconds;
+    string status;
+    string paymentMethod;
+    string phoneNumber;
+
+    Order(string id, vector<Item> cartItems, double total, string method, string phone) 
+        : orderID(id), items(cartItems), totalAmount(total), readyTimeSeconds(1200), 
+          status("Preparing"), paymentMethod(method), phoneNumber(phone) {
+        orderTime = time(0);
     }
 
-    virtual ~Payment() {}
+    int getTimeRemaining() {
+        time_t now = time(0);
+        int elapsed = (int)difftime(now, orderTime);
+        int remaining = readyTimeSeconds - elapsed;
+        return remaining > 0 ? remaining : 0;
+    }
 
-    virtual bool processPayment() = 0; // Pure virtual function
-    virtual void displayPaymentDetails() = 0;
+    void updateStatus() {
+        int remaining = getTimeRemaining();
+        if (remaining <= 0) {
+            status = "Ready for Pickup";
+        }
+    }
 
-    string getTransactionID() {
-        return transactionID;
+    void displayOrder() {
+        cout << "\nOrder ID: " << orderID;
+        cout << "\nItems:\n";
+        for (size_t i = 0; i < items.size(); i++)
+            cout << "  " << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price << "\n";
+        cout << "Total: Rs. " << totalAmount << "\n";
+        cout << "Payment Method: " << paymentMethod << "\n";
+        cout << "Phone: " << phoneNumber << "\n";
+        
+        updateStatus();
+        cout << "Status: " << status << "\n";
+        
+        if (status == "Preparing") {
+            int remaining = getTimeRemaining();
+            int minutes = remaining / 60;
+            int seconds = remaining % 60;
+            cout << "Time Remaining: " << setfill('0') << setw(2) << minutes << ":" 
+                 << setw(2) << seconds << "\n";
+        }
+    }
+
+    void displayOrderCompact() {
+        cout << "\nOrder ID: " << orderID << " | Total: Rs. " << totalAmount;
+        updateStatus();
+        cout << " | Status: " << status;
+        
+        if (status == "Preparing") {
+            int remaining = getTimeRemaining();
+            int minutes = remaining / 60;
+            int seconds = remaining % 60;
+            cout << " | Time: " << setfill('0') << setw(2) << minutes << ":" << setw(2) << seconds;
+        }
+        cout << "\n";
     }
 };
 
-// ======= Cash Payment (Child of Payment) =======
-class CashPayment : public Payment {
-public:
-    CashPayment(double amt) : Payment(amt) {}
-
-    bool processPayment() override {
-        cout << "\n💵 Processing Cash Payment...\n";
-        cout << "Amount: Rs. " << amount << "\n";
-        cout << "✅ Cash payment successful!\n";
-        return true;
-    }
-
-    void displayPaymentDetails() override {
-        cout << "\n========== PAYMENT RECEIPT ==========\n";
-        cout << "Payment Method: Cash\n";
-        cout << "Amount Paid: Rs. " << amount << "\n";
-        cout << "Transaction ID: " << transactionID << "\n";
-        cout << "=====================================\n";
-    }
-};
-
-// ======= Card Payment (Child of Payment) =======
-class CardPayment : public Payment {
+class OrderHistory {
 private:
-    string cardNumber;
+    vector<Order> orders;
+    int orderCounter;
 
 public:
-    CardPayment(double amt, string card) : Payment(amt), cardNumber(card) {}
+    OrderHistory() : orderCounter(1000) {}
 
-    bool processPayment() override {
-        cout << "\n💳 Processing Card Payment...\n";
-        cout << "Card Number: XXXX-XXXX-XXXX-" << cardNumber.substr(cardNumber.length() - 4) << "\n";
-        cout << "Amount: Rs. " << amount << "\n";
-        cout << "✅ Card payment successful!\n";
-        return true;
+    string generateOrderID() {
+        orderCounter++;
+        time_t now = time(0);
+        tm* timeinfo = localtime(&now);
+        char dateStr[15];
+        strftime(dateStr, sizeof(dateStr), "%d%m%Y", timeinfo);
+        return string(dateStr) + "ORD" + to_string(orderCounter);
     }
 
-    void displayPaymentDetails() override {
-        cout << "\n========== PAYMENT RECEIPT ==========\n";
-        cout << "Payment Method: Card\n";
-        cout << "Card: XXXX-XXXX-XXXX-" << cardNumber.substr(cardNumber.length() - 4) << "\n";
-        cout << "Amount Paid: Rs. " << amount << "\n";
-        cout << "Transaction ID: " << transactionID << "\n";
-        cout << "=====================================\n";
+    void addOrder(vector<Item> items, double total, string method, string phone) {
+        string ordID = generateOrderID();
+        Order newOrder(ordID, items, total, method, phone);
+        orders.push_back(newOrder);
+        cout << "Order placed successfully! Order ID: " << ordID << "\n";
+    }
+
+    void displayOngoingOrders() {
+        vector<Order> ongoing;
+        for (auto &order : orders) {
+            if (order.getTimeRemaining() > 0) {
+                ongoing.push_back(order);
+            }
+        }
+
+        if (ongoing.empty()) {
+            cout << "No ongoing orders.\n";
+            return;
+        }
+
+        cout << "\nOngoing Orders:\n";
+        for (auto &order : ongoing) {
+            order.displayOrder();
+            cout << "---\n";
+        }
+    }
+
+    void displayCompletedOrders() {
+        vector<Order> completed;
+        for (auto &order : orders) {
+            if (order.getTimeRemaining() <= 0) {
+                completed.push_back(order);
+            }
+        }
+
+        if (completed.empty()) {
+            cout << "No completed orders.\n";
+            return;
+        }
+
+        cout << "\nCompleted Orders:\n";
+        for (auto &order : completed) {
+            order.displayOrderCompact();
+        }
+    }
+
+    void displayAllOrders() {
+        if (orders.empty()) {
+            cout << "No orders yet.\n";
+            return;
+        }
+
+        cout << "\nAll Orders:\n";
+        for (auto &order : orders) {
+            order.displayOrder();
+            cout << "---\n";
+        }
+    }
+
+    void trackOrder(string ordID) {
+        for (auto &order : orders) {
+            if (order.orderID == ordID) {
+                order.displayOrder();
+                return;
+            }
+        }
+        cout << "Order not found.\n";
     }
 };
 
-// ======= Online Payment (Child of Payment) =======
-class OnlinePayment : public Payment {
-private:
-    string email;
-
-public:
-    OnlinePayment(double amt, string userEmail) : Payment(amt), email(userEmail) {}
-
-    bool processPayment() override {
-        cout << "\n🌐 Processing Online Payment...\n";
-        cout << "Email: " << email << "\n";
-        cout << "Amount: Rs. " << amount << "\n";
-        cout << "✅ Online payment successful!\n";
-        return true;
-    }
-
-    void displayPaymentDetails() override {
-        cout << "\n========== PAYMENT RECEIPT ==========\n";
-        cout << "Payment Method: Online\n";
-        cout << "Email: " << email << "\n";
-        cout << "Amount Paid: Rs. " << amount << "\n";
-        cout << "Transaction ID: " << transactionID << "\n";
-        cout << "=====================================\n";
-    }
-};
-
-// ======= Balance Class (manages user's money) =======
 class Balance {
 private:
     double totalBalance;
-    vector<string> transactionHistory;
 
 public:
-    Balance(double initial = 1000) : totalBalance(initial) {
-        transactionHistory.push_back("Initial balance: Rs. " + to_string(initial));
-    }
+    Balance(double initial = 1000) : totalBalance(initial) {}
 
     double getBalance() {
         return totalBalance;
     }
 
     void displayBalance() {
-        cout << "\n💰 Current Balance: Rs. " << totalBalance << "\n";
+        cout << "Current Balance: Rs. " << fixed << setprecision(2) << totalBalance << "\n";
     }
 
-    bool deductAmount(double amount, string method) {
+    bool deductAmount(double amount) {
         if (amount > totalBalance) {
-            cout << "❌ Insufficient balance!\n";
+            cout << "Insufficient balance!\n";
             return false;
         }
         totalBalance -= amount;
-        transactionHistory.push_back("Deducted Rs. " + to_string(amount) + " via " + method);
         return true;
     }
 
-    void addAmount(double amount, string method) {
+    void addAmount(double amount) {
         totalBalance += amount;
-        transactionHistory.push_back("Added Rs. " + to_string(amount) + " via " + method);
     }
 
-    void displayTransactionHistory() {
-        cout << "\n========== TRANSACTION HISTORY ==========\n";
-        for (const auto& transaction : transactionHistory) {
-            cout << "• " << transaction << "\n";
-        }
-        cout << "=========================================\n";
-    }
-
-    bool withdrawCash(double amount) {
-        if (deductAmount(amount, "Cash Withdrawal")) {
-            cout << "✅ Withdrew Rs. " << amount << " in cash.\n";
-            return true;
-        }
-        return false;
-    }
-
-    bool withdrawViaCard(double amount) {
-        if (deductAmount(amount, "Card Withdrawal")) {
-            cout << "✅ Withdrew Rs. " << amount << " via card.\n";
-            return true;
-        }
-        return false;
-    }
-
-    bool withdrawOnline(double amount) {
-        if (deductAmount(amount, "Online Transfer")) {
-            cout << "✅ Transferred Rs. " << amount << " online.\n";
-            return true;
-        }
-        return false;
-    }
-
-    void depositCash(double amount) {
-        addAmount(amount, "Cash Deposit");
-        cout << "✅ Deposited Rs. " << amount << " in cash.\n";
-    }
-
-    void depositViaCard(double amount) {
-        addAmount(amount, "Card Deposit");
-        cout << "✅ Deposited Rs. " << amount << " via card.\n";
-    }
-
-    void depositOnline(double amount) {
-        addAmount(amount, "Online Deposit");
-        cout << "✅ Deposited Rs. " << amount << " online.\n";
+    bool rechargeBalance(double amount) {
+        addAmount(amount);
+        cout << "Recharged Rs. " << amount << " successfully!\n";
+        return true;
     }
 };
 
-// ======= Class representing student (user) =======
 class Student {
 public:
     string id;
     string password;
+    string phoneNumber;
+    string email;
     Balance balance;
     ShoppingCart cart;
+    OrderHistory orderHistory;
 
     Student() : balance(1000) {}
 
@@ -319,8 +327,27 @@ public:
         cin >> id;
         cout << "Enter Password: ";
         cin >> password;
+        
+        while (true) {
+            cout << "Enter Phone Number (11 digits): ";
+            cin >> phoneNumber;
+            if (isValidPhoneNumber(phoneNumber)) {
+                break;
+            }
+            cout << "Invalid phone number! Please enter 11 digits.\n";
+        }
+        
+        while (true) {
+            cout << "Enter Email: ";
+            cin >> email;
+            if (isValidEmail(email)) {
+                break;
+            }
+            cout << "Invalid email! Please enter a valid email address.\n";
+        }
+        
         double initialBalance;
-        cout << "Enter Initial Balance: ";
+        cout << "Enter Initial Balance (Rs.): ";
         cin >> initialBalance;
         balance = Balance(initialBalance);
     }
@@ -328,12 +355,12 @@ public:
     void saveToFile() {
         ofstream outFile(FILE_PATH, ios::app);
         if (!outFile) {
-            cout << "❌ Error opening file!\n";
+            cout << "Error opening file!\n";
             return;
         }
-        outFile << id << " " << password << " " << balance.getBalance() << endl;
+        outFile << id << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
         outFile.close();
-        cout << "✅ Account saved successfully!\n";
+        cout << "Account saved successfully!\n";
     }
 
     bool login() {
@@ -345,17 +372,19 @@ public:
 
         ifstream inFile(FILE_PATH);
         if (!inFile) {
-            cout << "❌ No user data found.\n";
+            cout << "No user data found.\n";
             return false;
         }
 
-        string storedID, storedPass;
+        string storedID, storedPass, storedPhone, storedEmail;
         double storedBalance;
-        while (inFile >> storedID >> storedPass >> storedBalance) {
+        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if (loginID == storedID && loginPass == storedPass) {
-                cout << "✅ Login successful! Welcome, " << loginID << "!\n";
+                cout << "Login successful! Welcome, " << loginID << "!\n";
                 id = storedID;
                 password = storedPass;
+                phoneNumber = storedPhone;
+                email = storedEmail;
                 balance = Balance(storedBalance);
                 inFile.close();
                 return true;
@@ -363,8 +392,63 @@ public:
         }
 
         inFile.close();
-        cout << "❌ Invalid ID or password.\n";
+        cout << "Invalid ID or password.\n";
         return false;
+    }
+
+    static bool deleteAccount() {
+        string delID, delPass;
+        cout << "Enter ID or Email to delete: ";
+        cin >> delID;
+        cout << "Enter Password: ";
+        cin >> delPass;
+
+        ifstream inFile(FILE_PATH);
+        ofstream outFile("temp.txt");
+        
+        if (!inFile) {
+            cout << "No user data found.\n";
+            return false;
+        }
+
+        string storedID, storedPass, storedPhone, storedEmail;
+        double storedBalance;
+        bool found = false;
+
+        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+            if ((delID == storedID || delID == storedEmail) && delPass == storedPass) {
+                found = true;
+                cout << "Account deleted successfully!\n";
+            } else {
+                outFile << storedID << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
+            }
+        }
+
+        inFile.close();
+        outFile.close();
+
+        if (!found) {
+            cout << "Invalid ID/Email or password. Account not deleted.\n";
+            remove("temp.txt");
+            return false;
+        }
+
+        remove(FILE_PATH.c_str());
+        rename("temp.txt", FILE_PATH.c_str());
+        return true;
+    }
+
+    bool isValidPhoneNumber(string phone) {
+        if (phone.length() != 11) return false;
+        for (char c : phone) {
+            if (!isdigit(c)) return false;
+        }
+        return true;
+    }
+
+    bool isValidEmail(string email) {
+        regex emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
+        return regex_match(email, emailRegex);
     }
 
     void updateBalanceInFile() {
@@ -376,7 +460,7 @@ public:
             if (storedID == id) {
                 storedBalance = balance.getBalance();
             }
-            outFile << storedID << " " << storedPass << " " << storedBalance << endl;
+            outFile << storedID << " " << storedPass << " " << fixed << setprecision(2) << storedBalance << endl;
         }
         inFile.close();
         outFile.close();
@@ -386,130 +470,144 @@ public:
 
     void checkout() {
         if (cart.isEmpty()) {
-            cout << "❌ Cart is empty! Add items first.\n";
+            cout << "Cart is empty! Add items first.\n";
             return;
         }
 
         double total = cart.getTotal();
-        cout << "\n========== CHECKOUT ==========\n";
-        cout << "Total Amount: Rs. " << total << "\n";
+        cout << "\nCheckout:\n";
+        cout << "Total Amount: Rs. " << fixed << setprecision(2) << total << "\n";
         balance.displayBalance();
 
-        if (total > balance.getBalance()) {
-            cout << "❌ Not enough balance! Please top-up your account.\n";
+        cout << "\nSelect Payment Method:\n";
+        cout << "1. Online\n";
+        cout << "2. Card\n";
+        cout << "3. Cash\n";
+        cout << "Enter choice: ";
+        
+        int paymentChoice;
+        while (!(cin >> paymentChoice) || paymentChoice < 1 || paymentChoice > 3) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Invalid choice. Please enter 1, 2, or 3: ";
+        }
+
+        string paymentMethod;
+        if (paymentChoice == 1) {
+            paymentMethod = "Online";
+            if (total > balance.getBalance()) {
+                cout << "Insufficient balance!\n";
+                return;
+            }
+        } else if (paymentChoice == 2) {
+            paymentMethod = "Card";
+        } else {
+            paymentMethod = "Cash";
+        }
+
+        cout << "\nOrder Summary:\n";
+        cout << "Total: Rs. " << total << "\n";
+        cout << "Payment Method: " << paymentMethod << "\n";
+        cout << "Phone: " << phoneNumber << "\n";
+        cout << "Confirm order? (1 for Yes, 0 for No): ";
+        
+        int confirm;
+        while (!(cin >> confirm) || (confirm != 0 && confirm != 1)) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Invalid choice. Enter 1 for Yes or 0 for No: ";
+        }
+
+        if (confirm == 0) {
+            cout << "Order cancelled.\n";
             return;
         }
 
-        cout << "\nSelect Payment Method:\n";
-        cout << "1. Cash\n";
-        cout << "2. Card\n";
-        cout << "3. Online\n";
-        cout << "Enter choice: ";
-        int paymentChoice;
-        cin >> paymentChoice;
-
-        Payment* payment = nullptr;
-
-        switch (paymentChoice) {
-            case 1:
-                payment = new CashPayment(total);
-                break;
-            case 2: {
-                string cardNum;
-                cout << "Enter card number (16 digits): ";
-                cin >> cardNum;
-                payment = new CardPayment(total, cardNum);
-                break;
-            }
-            case 3: {
-                string email;
-                cout << "Enter email: ";
-                cin >> email;
-                payment = new OnlinePayment(total, email);
-                break;
-            }
-            default:
-                cout << "❌ Invalid payment method!\n";
-                return;
+        if (paymentChoice == 1) {
+            balance.deductAmount(total);
+            cout << "Online payment processed.\n";
+        } else if (paymentChoice == 2) {
+            cout << "Please pay with your card at the counter.\n";
+        } else {
+            cout << "Please pay in cash at the counter.\n";
         }
 
-        if (payment && payment->processPayment()) {
-            string method = (paymentChoice == 1) ? "Cash Payment" : 
-                           (paymentChoice == 2) ? "Card Payment" : "Online Payment";
-            balance.deductAmount(total, method);
-            payment->displayPaymentDetails();
-            cout << "✅ Order placed successfully!\n";
-            balance.displayBalance();
-            cart.clearCart();
-            updateBalanceInFile();
-        }
-
-        delete payment;
+        orderHistory.addOrder(cart.items, total, paymentMethod, phoneNumber);
+        cout << "Your order will be ready in about 20 minutes!\n";
+        balance.displayBalance();
+        cart.clearCart();
+        updateBalanceInFile();
     }
 };
 
-// ======= MAIN FUNCTION =======
+int getValidInput(int minVal, int maxVal) {
+    int choice;
+    while (true) {
+        cout << "Enter your choice: ";
+        if (!(cin >> choice)) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Invalid input! Please enter a number between " << minVal << " and " << maxVal << ".\n";
+            continue;
+        }
+        if (choice < minVal || choice > maxVal) {
+            cout << "Invalid choice! Please enter a number between " << minVal << " and " << maxVal << ".\n";
+            continue;
+        }
+        return choice;
+    }
+}
+
 int main() {
     Menu menu;
     Student student;
     int choice;
 
-    cout << "\n";
-    cout << "╔════════════════════════════════════════╗\n";
-    cout << "║     🍰 GrabNob Bakery System 🍰       ║\n";
-    cout << "║   Your Campus Food Ordering App       ║\n";
-    cout << "╚════════════════════════════════════════╝\n\n";
+    cout << "GrabNob Bakery System\n";
+    cout << "Your Campus Food Ordering App\n\n";
     
     cout << "1. Register New Account\n";
     cout << "2. Login\n";
-    cout << "Enter your choice: ";
-    cin >> choice;
+    cout << "3. Delete Account\n";
+    choice = getValidInput(1, 3);
 
     if (choice == 1) {
-        cout << "\n===== REGISTRATION =====\n";
+        cout << "\nRegistration:\n";
         student.inputDetails();
         student.saveToFile();
-        cout << "\nPlease login to continue...\n";
+        cout << "Please login to continue.\n";
         return 0;
-    } else if (choice == 2) {
-        cout << "\n===== LOGIN =====\n";
+    } else if (choice == 3) {
+        Student::deleteAccount();
+        return 0;
+    } else {
+        cout << "\nLogin:\n";
         if (!student.login()) {
             return 0;
         }
-    } else {
-        cout << "❌ Invalid choice.\n";
-        return 0;
     }
 
-    // ======= After login: Main Menu =======
     do {
-        cout << "\n╔════════════════════════════════════════╗\n";
-        cout << "║         🍰 GrabNob Bakery 🍰          ║\n";
-        cout << "╚════════════════════════════════════════╝\n";
+        cout << "\nGrabNob Bakery\n";
         student.balance.displayBalance();
-        cout << "\n1. Browse Menu (by Category)\n";
+        cout << "\n1. Browse Menu\n";
         cout << "2. View Shopping Cart\n";
         cout << "3. Remove Item from Cart\n";
         cout << "4. Checkout\n";
-        cout << "5. Manage Balance\n";
-        cout << "6. View Transaction History\n";
+        cout << "5. View Ongoing Orders\n";
+        cout << "6. View Order History\n";
+        cout << "7. Recharge Balance\n";
         cout << "0. Logout\n";
-        cout << "\nEnter your choice: ";
-        cin >> choice;
+        choice = getValidInput(0, 7);
 
         switch (choice) {
             case 1: {
-                // Browse menu by category
                 menu.displayCategories();
-                cout << "\nSelect category (0 to go back): ";
-                int cat;
-                cin >> cat;
-                if (cat > 0 && cat <= (int)menu.categories.size()) {
+                int cat = getValidInput(0, (int)menu.categories.size());
+                if (cat > 0) {
                     menu.displayCategoryMenu(cat - 1);
-                    cout << "\nEnter item number to add to cart (0 to go back): ";
-                    int itemNum;
-                    cin >> itemNum;
-                    if (itemNum > 0 && itemNum <= (int)menu.categories[cat - 1].items.size()) {
+                    int itemNum = getValidInput(0, (int)menu.categories[cat - 1].items.size());
+                    if (itemNum > 0) {
                         student.cart.addItem(menu.categories[cat - 1].items[itemNum - 1]);
                     }
                 }
@@ -521,9 +619,7 @@ int main() {
             case 3: {
                 student.cart.displayCart();
                 if (!student.cart.isEmpty()) {
-                    int removeIndex;
-                    cout << "\nEnter item number to remove (0 to cancel): ";
-                    cin >> removeIndex;
+                    int removeIndex = getValidInput(0, (int)student.cart.items.size());
                     if (removeIndex > 0) {
                         student.cart.removeItem(removeIndex - 1);
                     }
@@ -533,54 +629,41 @@ int main() {
             case 4:
                 student.checkout();
                 break;
-            case 5: {
-                cout << "\n===== MANAGE BALANCE =====\n";
-                cout << "1. Deposit Money\n";
-                cout << "2. Withdraw Money\n";
-                cout << "3. View Balance\n";
-                cout << "Enter choice: ";
-                int balChoice;
-                cin >> balChoice;
-                
-                if (balChoice == 1) {
-                    cout << "\nSelect deposit method:\n";
-                    cout << "1. Cash\n2. Card\n3. Online\n";
-                    cout << "Enter choice: ";
-                    int method;
-                    cin >> method;
-                    cout << "Enter amount: Rs. ";
-                    double amt;
-                    cin >> amt;
-                    if (method == 1) student.balance.depositCash(amt);
-                    else if (method == 2) student.balance.depositViaCard(amt);
-                    else if (method == 3) student.balance.depositOnline(amt);
-                    student.updateBalanceInFile();
-                } else if (balChoice == 2) {
-                    cout << "\nSelect withdrawal method:\n";
-                    cout << "1. Cash\n2. Card\n3. Online\n";
-                    cout << "Enter choice: ";
-                    int method;
-                    cin >> method;
-                    cout << "Enter amount: Rs. ";
-                    double amt;
-                    cin >> amt;
-                    if (method == 1) student.balance.withdrawCash(amt);
-                    else if (method == 2) student.balance.withdrawViaCard(amt);
-                    else if (method == 3) student.balance.withdrawOnline(amt);
-                    student.updateBalanceInFile();
-                } else if (balChoice == 3) {
-                    student.balance.displayBalance();
+            case 5:
+                student.orderHistory.displayOngoingOrders();
+                break;
+            case 6: {
+                cout << "\n1. View All Orders\n";
+                cout << "2. View Completed Orders\n";
+                cout << "3. Track Specific Order\n";
+                int histChoice = getValidInput(1, 3);
+                if (histChoice == 1) {
+                    student.orderHistory.displayAllOrders();
+                } else if (histChoice == 2) {
+                    student.orderHistory.displayCompletedOrders();
+                } else {
+                    string ordID;
+                    cout << "Enter Order ID: ";
+                    cin >> ordID;
+                    student.orderHistory.trackOrder(ordID);
                 }
                 break;
             }
-            case 6:
-                student.balance.displayTransactionHistory();
+            case 7: {
+                double rechargeAmount;
+                cout << "Enter amount to recharge (Rs.): ";
+                cin >> rechargeAmount;
+                if (rechargeAmount > 0) {
+                    student.balance.rechargeBalance(rechargeAmount);
+                    student.updateBalanceInFile();
+                } else {
+                    cout << "Invalid amount!\n";
+                }
                 break;
+            }
             case 0:
-                cout << "\n👋 Logging out... Thank you for using GrabNob!\n";
+                cout << "Logging out. Thank you for using GrabNob!\n";
                 break;
-            default:
-                cout << "❌ Invalid choice. Please try again.\n";
         }
 
     } while (choice != 0);
