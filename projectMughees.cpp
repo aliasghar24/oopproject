@@ -11,43 +11,38 @@
 using namespace std;
 
 const string FILE_PATH = "Students.txt";
+const string ORDERS_FILE = "Orders.txt";
 
 // --------------------- Item ---------------------
 class Item {
 public:
     string name;
     double price;
-    int quantity; // stock (for menu items)
+    int quantity;
 
     Item(string n = "", double p = 0, int q = 5) : name(n), price(p), quantity(q) {}
 };
 
-// --------------------- CustomSandwich & Ingredient Inventory ---------------------
+// --------------------- IngredientInventory ---------------------
 class IngredientInventory {
 public:
     unordered_map<string, int> stock;
 
-    // initialize all ingredient stocks to 10
     void reset() {
         stock.clear();
-        // Breads
         stock["Bread_White"] = 10;
         stock["Bread_Brown"] = 10;
         stock["Bread_Multigrain"] = 10;
-        // Proteins
         stock["Protein_Chicken"] = 10;
         stock["Protein_Beef"] = 10;
         stock["Protein_Egg"] = 10;
-        // Veggies
         stock["Veg_Lettuce"] = 10;
         stock["Veg_Cucumber"] = 10;
         stock["Veg_Olives"] = 10;
         stock["Veg_Onions"] = 10;
-        // Sauces
         stock["Sauce_Mayo"] = 10;
         stock["Sauce_Garlic"] = 10;
         stock["Sauce_Chipotle"] = 10;
-        // Extras
         stock["Extra_Cheese"] = 10;
     }
 
@@ -57,7 +52,6 @@ public:
         return it->second >= qty;
     }
 
-    // check if a set of keys are available for given qty
     bool hasEnoughAll(const vector<string> &keys, int qty) {
         for (auto &k : keys) {
             if (!hasEnough(k, qty)) return false;
@@ -96,18 +90,18 @@ public:
     }
 };
 
-IngredientInventory ingredientInventory; // global for session
+IngredientInventory ingredientInventory;
 
+// --------------------- CustomSandwich ---------------------
 class CustomSandwich {
 public:
     string breadKey, proteinKey, vegKey, sauceKey, extraKey;
     string bread, protein, veggies, sauce, extras;
     double price;
-    vector<string> chosenIngredientKeys; // keys consumed per 1 sandwich
+    vector<string> chosenIngredientKeys;
 
     CustomSandwich() : price(0) {}
 
-    // Build sandwich — does NOT consume stock yet (consumption happens when user confirms quantity)
     Item buildSandwich() {
         chosenIngredientKeys.clear();
         price = 0;
@@ -184,7 +178,7 @@ public:
         else { extras = "None"; extraKey = ""; }
 
         string name = "Custom Sandwich (" + bread + ", " + protein + ", " + veggies + ", " + sauce + ", " + extras + ")";
-        return Item(name, price, /*quantity not used for custom*/ 0);
+        return Item(name, price, 0);
     }
 };
 
@@ -220,7 +214,7 @@ public:
         savoury.addItem(Item("Sandwich", 350, 5));
         savoury.addItem(Item("Burger", 400, 5));
         savoury.addItem(Item("Pizza Slice", 450, 5));
-        savoury.addItem(Item("Make Your Own Sandwich", 100, 5)); // this is just an option; uses ingredient stock
+        savoury.addItem(Item("Make Your Own Sandwich", 100, 5));
 
         Category sweets("Sweets");
         sweets.addItem(Item("Cookie", 250, 5));
@@ -250,14 +244,12 @@ public:
         }
     }
 
-    // reset all menu item stocks to 5
     void resetStock() {
         for (auto &cat : categories)
             for (auto &it : cat.items)
                 it.quantity = 5;
     }
 
-    // increase stock for a menu item by name (used when removing from cart)
     void increaseStockByName(const string &itemName, int qty) {
         for (auto &cat : categories)
             for (auto &it : cat.items)
@@ -267,7 +259,6 @@ public:
                 }
     }
 
-    // find item reference by category index & item index (both 0-based)
     Item* getItemRef(int catIdx, int itemIdx) {
         if (catIdx < 0 || catIdx >= (int)categories.size()) return nullptr;
         if (itemIdx < 0 || itemIdx >= (int)categories[catIdx].items.size()) return nullptr;
@@ -282,7 +273,7 @@ public:
     double price;
     int quantity;
     bool isCustom;
-    vector<pair<string,int>> ingredientUsage; // <ingredientKey, qty> if custom
+    vector<pair<string,int>> ingredientUsage;
 
     CartItem(string n = "", double p = 0, int q = 0) : name(n), price(p), quantity(q), isCustom(false) {}
 };
@@ -292,17 +283,15 @@ public:
     vector<CartItem> items;
 
     void addItem(const string &name, double price, int qty, bool isCustom=false, const vector<pair<string,int>> &usage = {}) {
-        // If same non-custom item exists, increase quantity
         for (auto &ci : items) {
             if (!ci.isCustom && !isCustom && ci.name == name) {
                 ci.quantity += qty;
-                cout << "✅ Increased " << ci.name << " quantity in cart by " << qty << ".\n";
+                cout << "Increased " << ci.name << " quantity in cart by " << qty << ".\n";
                 return;
             }
-            // For custom sandwiches, we treat each custom composition as unique (could compare ingredientUsage)
             if (ci.isCustom && isCustom && ci.name == name && ci.ingredientUsage == usage) {
                 ci.quantity += qty;
-                cout << "✅ Increased custom sandwich quantity in cart by " << qty << ".\n";
+                cout << "Increased custom sandwich quantity in cart by " << qty << ".\n";
                 return;
             }
         }
@@ -310,7 +299,7 @@ public:
         c.isCustom = isCustom;
         c.ingredientUsage = usage;
         items.push_back(c);
-        cout << "✅ Added " << name << " x" << qty << " to cart.\n";
+        cout << "Added " << name << " x" << qty << " to cart.\n";
     }
 
     bool removeItem(int index, CartItem &removed) {
@@ -319,7 +308,7 @@ public:
             return false;
         }
         removed = items[index];
-        cout << "❌ Removed " << removed.name << " x" << removed.quantity << " from cart.\n";
+        cout << "Removed " << removed.name << " x" << removed.quantity << " from cart.\n";
         items.erase(items.begin() + index);
         return true;
     }
@@ -342,7 +331,7 @@ public:
                  << " - Rs. " << items[i].price << " each"
                  << " | Subtotal: Rs. " << items[i].price * items[i].quantity << "\n";
             if (items[i].isCustom) {
-                cout << "   Ingredients consumed per sandwich:\n";
+                cout << "   Ingredients:\n";
                 for (auto &p : items[i].ingredientUsage)
                     cout << "    - " << p.first << "\n";
             }
@@ -359,11 +348,14 @@ public:
     }
 };
 
-// --------------------- Order, OrderHistory (unchanged) ---------------------
+// --------------------- Order & OrderHistory ---------------------
 class Order {
 public:
     string orderID;
-    vector<CartItem> items;
+    string username;
+    string orderDate;
+    vector<Item> items;
+    vector<int> quantities;
     double totalAmount;
     time_t orderTime;
     int readyTimeSeconds;
@@ -371,10 +363,10 @@ public:
     string paymentMethod;
     string phoneNumber;
 
-    Order(string id, const vector<CartItem> &cartItems, double total, string method, string phone)
-        : orderID(id), totalAmount(total), readyTimeSeconds(1200), status("Preparing"), paymentMethod(method), phoneNumber(phone) {
+    Order(string id, string user, string date, vector<Item> cartItems, vector<int> qtys, double total, string method, string phone) 
+        : orderID(id), username(user), orderDate(date), items(cartItems), quantities(qtys), totalAmount(total), readyTimeSeconds(60), 
+          status("Preparing"), paymentMethod(method), phoneNumber(phone) {
         orderTime = time(0);
-        items = cartItems;
     }
 
     int getTimeRemaining() {
@@ -393,30 +385,32 @@ public:
 
     void displayOrder() {
         cout << "\nOrder ID: " << orderID;
+        cout << "\nCustomer: " << username;
+        cout << "\nDate: " << orderDate;
         cout << "\nItems:\n";
         for (size_t i = 0; i < items.size(); i++)
-            cout << "  " << i + 1 << ". " << items[i].name << " x" << items[i].quantity << " - Rs. " << items[i].price << "\n";
+            cout << "  " << i + 1 << ". " << items[i].name << " x" << quantities[i] << " - Rs. " << items[i].price << " each | Subtotal: Rs. " << (items[i].price * quantities[i]) << "\n";
         cout << "Total: Rs. " << totalAmount << "\n";
         cout << "Payment Method: " << paymentMethod << "\n";
         cout << "Phone: " << phoneNumber << "\n";
-
+        
         updateStatus();
         cout << "Status: " << status << "\n";
-
+        
         if (status == "Preparing") {
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
             int seconds = remaining % 60;
-            cout << "Time Remaining: " << setfill('0') << setw(2) << minutes << ":"
+            cout << "Time Remaining: " << setfill('0') << setw(2) << minutes << ":" 
                  << setw(2) << seconds << "\n";
         }
     }
 
     void displayOrderCompact() {
-        cout << "\nOrder ID: " << orderID << " | Total: Rs. " << totalAmount;
+        cout << "\nOrder ID: " << orderID << " | Customer: " << username << " | Date: " << orderDate << " | Total: Rs. " << totalAmount;
         updateStatus();
         cout << " | Status: " << status;
-
+        
         if (status == "Preparing") {
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
@@ -433,7 +427,30 @@ private:
     int orderCounter;
 
 public:
-    OrderHistory() : orderCounter(1000) {}
+    OrderHistory() : orderCounter(1000) {
+        loadOrderCounterFromFile();
+        loadOrdersFromFile();
+    }
+
+    void loadOrderCounterFromFile() {
+        ifstream inFile(ORDERS_FILE);
+        if (!inFile) {
+            return;
+        }
+
+        string line;
+        while (getline(inFile, line)) {
+            if (line.empty()) continue;
+            size_t pos = 0;
+            string orderID = line.substr(0, line.find("||"));
+            string numberPart = orderID.substr(8);
+            int orderNum = stoi(numberPart.substr(3));
+            if (orderNum > orderCounter) {
+                orderCounter = orderNum;
+            }
+        }
+        inFile.close();
+    }
 
     string generateOrderID() {
         orderCounter++;
@@ -444,11 +461,113 @@ public:
         return string(dateStr) + "ORD" + to_string(orderCounter);
     }
 
-    void addOrder(const vector<CartItem> &items, double total, string method, string phone) {
+    string getCurrentDate() {
+        time_t now = time(0);
+        tm* timeinfo = localtime(&now);
+        char dateStr[20];
+        strftime(dateStr, sizeof(dateStr), "%d-%m-%Y %H:%M", timeinfo);
+        return string(dateStr);
+    }
+
+    void addOrder(vector<Item> items, vector<int> quantities, double total, string method, string phone, string username) {
         string ordID = generateOrderID();
-        Order newOrder(ordID, items, total, method, phone);
+        string date = getCurrentDate();
+        Order newOrder(ordID, username, date, items, quantities, total, method, phone);
         orders.push_back(newOrder);
+        saveOrderToFile(newOrder);
         cout << "Order placed successfully! Order ID: " << ordID << "\n";
+    }
+
+    void saveOrderToFile(Order &order) {
+        ofstream outFile(ORDERS_FILE, ios::app);
+        if (!outFile) {
+            cout << "Error saving order!\n";
+            return;
+        }
+        outFile << order.orderID << "||" << order.username << "||" << order.orderDate << "||" 
+                << order.totalAmount << "||" << order.paymentMethod << "||" 
+                << order.phoneNumber << "||" << order.orderTime << "||";
+        for (size_t i = 0; i < order.items.size(); i++) {
+            string itemName = order.items[i].name;
+            for (char &c : itemName) {
+                if (c == '|' || c == ':' || c == ',') c = ' ';
+            }
+            outFile << itemName << ":" << order.items[i].price << ":" << order.quantities[i];
+            if (i < order.items.size() - 1) outFile << ",";
+        }
+        outFile << "\n";
+        outFile.close();
+    }
+
+    void loadOrdersFromFile() {
+        ifstream inFile(ORDERS_FILE);
+        if (!inFile) {
+            return;
+        }
+
+        string line;
+        while (getline(inFile, line)) {
+            if (line.empty()) continue;
+            
+            try {
+                size_t pos = 0;
+                
+                string orderID = line.substr(0, line.find("||"));
+                pos = line.find("||") + 2;
+                
+                string username = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                string orderDate = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                double totalAmount = stod(line.substr(pos, line.find("||", pos) - pos));
+                pos = line.find("||", pos) + 2;
+                
+                string paymentMethod = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                string phoneNumber = line.substr(pos, line.find("||", pos) - pos);
+                pos = line.find("||", pos) + 2;
+                
+                time_t orderTime = stol(line.substr(pos, line.find("||", pos) - pos));
+                pos = line.find("||", pos) + 2;
+                
+                string itemsStr = line.substr(pos);
+                vector<Item> items;
+                vector<int> quantities;
+                
+                size_t itemPos = 0;
+                while (itemPos < itemsStr.length()) {
+                    size_t commaPos = itemsStr.find(",", itemPos);
+                    if (commaPos == string::npos) commaPos = itemsStr.length();
+                    
+                    string itemStr = itemsStr.substr(itemPos, commaPos - itemPos);
+                    size_t colonPos = itemStr.rfind(":");
+                    
+                    if (colonPos != string::npos) {
+                        size_t secondColonPos = itemStr.rfind(":", colonPos - 1);
+                        if (secondColonPos != string::npos) {
+                            string itemName = itemStr.substr(0, secondColonPos);
+                            double itemPrice = stod(itemStr.substr(secondColonPos + 1, colonPos - secondColonPos - 1));
+                            int itemQty = stoi(itemStr.substr(colonPos + 1));
+                            items.push_back(Item(itemName, itemPrice));
+                            quantities.push_back(itemQty);
+                        }
+                    }
+                    
+                    itemPos = commaPos + 1;
+                }
+                
+                Order loadedOrder(orderID, username, orderDate, items, quantities, totalAmount, paymentMethod, phoneNumber);
+                loadedOrder.orderTime = orderTime;
+                orders.push_back(loadedOrder);
+            } catch (const exception &e) {
+                cout << "Warning: Could not load order from file: " << e.what() << "\n";
+                continue;
+            }
+        }
+        inFile.close();
     }
 
     void displayOngoingOrders() {
@@ -554,6 +673,7 @@ public:
 class Student {
 public:
     string id;
+    string username;
     string password;
     string phoneNumber;
     string email;
@@ -566,23 +686,29 @@ public:
     void inputDetails() {
         cout << "Enter Student ID: ";
         cin >> id;
+        cout << "Enter Username: ";
+        cin >> username;
         cout << "Enter Password: ";
         cin >> password;
-
+        
         while (true) {
             cout << "Enter Phone Number (11 digits): ";
             cin >> phoneNumber;
-            if (isValidPhoneNumber(phoneNumber)) break;
+            if (isValidPhoneNumber(phoneNumber)) {
+                break;
+            }
             cout << "Invalid phone number! Please enter 11 digits.\n";
         }
-
+        
         while (true) {
             cout << "Enter Email: ";
             cin >> email;
-            if (isValidEmail(email)) break;
+            if (isValidEmail(email)) {
+                break;
+            }
             cout << "Invalid email! Please enter a valid email address.\n";
         }
-
+        
         double initialBalance;
         cout << "Enter Initial Balance (Rs.): ";
         cin >> initialBalance;
@@ -595,7 +721,7 @@ public:
             cout << "Error opening file!\n";
             return;
         }
-        outFile << id << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
+        outFile << id << " " << username << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
         outFile.close();
         cout << "Account saved successfully!\n";
     }
@@ -613,12 +739,13 @@ public:
             return false;
         }
 
-        string storedID, storedPass, storedPhone, storedEmail;
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
-        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if (loginID == storedID && loginPass == storedPass) {
-                cout << "Login successful! Welcome, " << loginID << "!\n";
+                cout << "Login successful! Welcome, " << storedUsername << "!\n";
                 id = storedID;
+                username = storedUsername;
                 password = storedPass;
                 phoneNumber = storedPhone;
                 email = storedEmail;
@@ -642,22 +769,22 @@ public:
 
         ifstream inFile(FILE_PATH);
         ofstream outFile("temp.txt");
-
+        
         if (!inFile) {
             cout << "No user data found.\n";
             return false;
         }
 
-        string storedID, storedPass, storedPhone, storedEmail;
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
         bool found = false;
 
-        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if ((delID == storedID || delID == storedEmail) && delPass == storedPass) {
                 found = true;
                 cout << "Account deleted successfully!\n";
             } else {
-                outFile << storedID << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
+                outFile << storedID << " " << storedUsername << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
             }
         }
 
@@ -677,7 +804,9 @@ public:
 
     bool isValidPhoneNumber(string phone) {
         if (phone.length() != 11) return false;
-        for (char c : phone) if (!isdigit(c)) return false;
+        for (char c : phone) {
+            if (!isdigit(c)) return false;
+        }
         return true;
     }
 
@@ -688,19 +817,47 @@ public:
 
     void updateBalanceInFile() {
         ifstream inFile(FILE_PATH);
-        ofstream outFile("temp.txt");
-        string storedID, storedPass, storedPhone, storedEmail;
+        if (!inFile) {
+            cout << "Error opening file for reading!\n";
+            return;
+        }
+
+        vector<string> ids, usernames, passwords, phones, emails;
+        vector<double> balances;
+
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
         double storedBalance;
-        while (inFile >> storedID >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
             if (storedID == id) {
                 storedBalance = balance.getBalance();
             }
-            outFile << storedID << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
+
+            ids.push_back(storedID);
+            usernames.push_back(storedUsername);
+            passwords.push_back(storedPass);
+            phones.push_back(storedPhone);
+            emails.push_back(storedEmail);
+            balances.push_back(storedBalance);
         }
         inFile.close();
+
+        ofstream outFile(FILE_PATH);
+        if (!outFile) {
+            cout << "Error opening file for writing!\n";
+            return;
+        }
+
+        for (size_t i = 0; i < ids.size(); i++) {
+            outFile << ids[i] << " "
+                    << usernames[i] << " "
+                    << passwords[i] << " "
+                    << phones[i] << " "
+                    << emails[i] << " "
+                    << fixed << setprecision(2) << balances[i] << endl;
+        }
+
         outFile.close();
-        remove(FILE_PATH.c_str());
-        rename("temp.txt", FILE_PATH.c_str());
     }
 
     void checkout() {
@@ -719,7 +876,7 @@ public:
         cout << "2. Card\n";
         cout << "3. Cash\n";
         cout << "Enter choice: ";
-
+        
         int paymentChoice;
         while (!(cin >> paymentChoice) || paymentChoice < 1 || paymentChoice > 3) {
             cin.clear();
@@ -734,27 +891,55 @@ public:
                 cout << "Insufficient balance!\n";
                 return;
             }
+        } else if (paymentChoice == 2) {
+            paymentMethod = "Card";
+        } else {
+            paymentMethod = "Cash";
+        }
+
+        cout << "\nOrder Summary:\n";
+        cout << "Total: Rs. " << total << "\n";
+        cout << "Payment Method: " << paymentMethod << "\n";
+        cout << "Phone: " << phoneNumber << "\n";
+        cout << "Confirm order? (1 for Yes, 0 for No): ";
+        
+        int confirm;
+        while (!(cin >> confirm) || (confirm != 0 && confirm != 1)) {
+            cin.clear();
+            cin.ignore(10000, '\n');
+            cout << "Invalid choice. Enter 1 for Yes or 0 for No: ";
+        }
+
+        if (confirm == 0) {
+            cout << "Order cancelled.\n";
+            return;
+        }
+
+        if (paymentChoice == 1) {
             balance.deductAmount(total);
             cout << "Online payment processed.\n";
         } else if (paymentChoice == 2) {
-            paymentMethod = "Card";
             cout << "Please pay with your card at the counter.\n";
         } else {
-            paymentMethod = "Cash";
             cout << "Please pay in cash at the counter.\n";
         }
 
-        // place order
-        orderHistory.addOrder(cart.items, total, paymentMethod, phoneNumber);
-        cout << "Your order will be ready in about 20 minutes!\n";
+        // Extract items and quantities from cart
+        vector<Item> orderItems;
+        vector<int> orderQuantities;
+        for (auto &item : cart.items) {
+            orderItems.push_back(Item(item.name, item.price));
+            orderQuantities.push_back(item.quantity);
+        }
+
+        orderHistory.addOrder(orderItems, orderQuantities, total, paymentMethod, phoneNumber, username);
+        cout << "Your order will be ready in about 1 minute!\n";
         balance.displayBalance();
-        // cart cleared after order
         cart.clearCart();
         updateBalanceInFile();
     }
 };
 
-// --------------------- Utility ---------------------
 int getValidInput(int minVal, int maxVal) {
     int choice;
     while (true) {
@@ -773,7 +958,6 @@ int getValidInput(int minVal, int maxVal) {
     }
 }
 
-// --------------------- MAIN ---------------------
 int main() {
     Menu menu;
     Student student;
@@ -781,7 +965,7 @@ int main() {
 
     cout << "GrabNob Bakery System\n";
     cout << "Your Campus Food Ordering App\n\n";
-
+    
     cout << "1. Register New Account\n";
     cout << "2. Login\n";
     cout << "3. Delete Account\n";
@@ -801,7 +985,6 @@ int main() {
         if (!student.login()) {
             return 0;
         }
-        // Reset menu stock AND ingredient stock for this session
         menu.resetStock();
         ingredientInventory.reset();
     }
@@ -822,21 +1005,17 @@ int main() {
         switch (choice) {
             case 1: {
                 menu.displayCategories();
-                cout << "\nSelect category (0 to go back):\n";
                 int cat = getValidInput(0, (int)menu.categories.size());
                 if (cat > 0) {
                     menu.displayCategoryMenu(cat - 1);
-                    cout << "\nEnter item number to add to cart (0 to go back):\n";
                     int itemNum = getValidInput(0, (int)menu.categories[cat - 1].items.size());
                     if (itemNum > 0) {
                         Item *selected = menu.getItemRef(cat - 1, itemNum - 1);
                         if (!selected) break;
 
-                        // custom sandwich option
                         if (selected->name == "Make Your Own Sandwich") {
                             CustomSandwich cs;
-                            Item customSample = cs.buildSandwich(); // chosenIngredientKeys stored in cs
-                            // ask how many of this custom sandwich to add
+                            Item customSample = cs.buildSandwich();
                             cout << "Enter quantity of this custom sandwich to add: ";
                             int qty;
                             while (!(cin >> qty) || qty <= 0) {
@@ -845,24 +1024,18 @@ int main() {
                                 cout << "Invalid quantity. Enter positive integer: ";
                             }
 
-                            // check ingredient availability
                             if (!ingredientInventory.hasEnoughAll(cs.chosenIngredientKeys, qty)) {
-                                cout << "❌ Not enough ingredient stock for " << qty << " sandwich(es).\n";
-                                // show available quantities for the missing ones
+                                cout << "Not enough ingredient stock for " << qty << " sandwich(es).\n";
                                 for (auto &k : cs.chosenIngredientKeys) {
                                     cout << "   " << k << ": " << ingredientInventory.stock[k] << " available\n";
                                 }
                             } else {
-                                // consume ingredients
                                 ingredientInventory.consumeAll(cs.chosenIngredientKeys, qty);
-                                // prepare ingredientUsage vector for cart item restoration if removed
                                 vector<pair<string,int>> usage;
                                 for (auto &k : cs.chosenIngredientKeys) usage.push_back({k, qty});
-                                // add to cart as custom
                                 student.cart.addItem(customSample.name, customSample.price, qty, true, usage);
                             }
                         } else {
-                            // normal menu item -> ask quantity, check stock
                             cout << "Enter quantity to add: ";
                             int qty;
                             while (!(cin >> qty) || qty <= 0) {
@@ -871,7 +1044,7 @@ int main() {
                                 cout << "Invalid quantity. Enter positive integer: ";
                             }
                             if (qty > selected->quantity) {
-                                cout << "❌ Not enough stock. Available: " << selected->quantity << "\n";
+                                cout << "Not enough stock. Available: " << selected->quantity << "\n";
                             } else {
                                 selected->quantity -= qty;
                                 student.cart.addItem(selected->name, selected->price, qty, false, {});
@@ -887,7 +1060,6 @@ int main() {
             case 3: {
                 student.cart.displayCart();
                 if (!student.cart.isEmpty()) {
-                    cout << "\nEnter item number to remove (0 to cancel):\n";
                     int removeIndex = getValidInput(0, (int)student.cart.items.size());
                     if (removeIndex > 0) {
                         CartItem &itemToRemove = student.cart.items[removeIndex - 1];
@@ -900,9 +1072,7 @@ int main() {
                             cout << "Invalid quantity. Enter a number between 1 and " << itemToRemove.quantity << ": ";
                         }
 
-                        // restore stock
                         if (itemToRemove.isCustom) {
-                            // restore each ingredient usage proportionally
                             vector<pair<string,int>> restoreUsage;
                             for (auto &p : itemToRemove.ingredientUsage) {
                                 restoreUsage.push_back({p.first, qtyToRemove});
@@ -913,9 +1083,8 @@ int main() {
                         }
 
                         itemToRemove.quantity -= qtyToRemove;
-                        cout << "❌ Removed " << qtyToRemove << " of " << itemToRemove.name << " from cart.\n";
+                        cout << "Removed " << qtyToRemove << " of " << itemToRemove.name << " from cart.\n";
 
-                        // if quantity reaches 0, erase the item completely
                         if (itemToRemove.quantity == 0) {
                             student.cart.items.erase(student.cart.items.begin() + (removeIndex - 1));
                         }
@@ -935,9 +1104,11 @@ int main() {
                 cout << "2. View Completed Orders\n";
                 cout << "3. Track Specific Order\n";
                 int histChoice = getValidInput(1, 3);
-                if (histChoice == 1) student.orderHistory.displayAllOrders();
-                else if (histChoice == 2) student.orderHistory.displayCompletedOrders();
-                else {
+                if (histChoice == 1) {
+                    student.orderHistory.displayAllOrders();
+                } else if (histChoice == 2) {
+                    student.orderHistory.displayCompletedOrders();
+                } else {
                     string ordID;
                     cout << "Enter Order ID: ";
                     cin >> ordID;
@@ -961,6 +1132,7 @@ int main() {
                 cout << "Logging out. Thank you for using GrabNob!\n";
                 break;
         }
+
     } while (choice != 0);
 
     return 0;
