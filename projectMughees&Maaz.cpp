@@ -716,11 +716,15 @@ public:
     }
 
     void saveToFile() {
+        // ofstream = it is used to write to files
+        // ios::app = means append mode. do NOT erase old data, just add new data at the bottom of the file.
         ofstream outFile(FILE_PATH, ios::app);
         if (!outFile) {
             cout << "Error opening file!\n";
             return;
         }
+        // setprecisiion(2) is used to set the limit to 2 decimal places
+        // fixed is used to display numbers in non scientific way (withou e and stuff like this)
         outFile << id << " " << username << " " << password << " " << phoneNumber << " " << email << " " << fixed << setprecision(2) << balance.getBalance() << endl;
         outFile.close();
         cout << "Account saved successfully!\n";
@@ -733,6 +737,8 @@ public:
         cout << "Enter your password: ";
         cin >> loginPass;
 
+        // ifstream opens the file in read mode
+        // FILE_PATH = where all students are saved
         ifstream inFile(FILE_PATH);
         if (!inFile) {
             cout << "No user data found.\n";
@@ -767,9 +773,12 @@ public:
         cout << "Enter Password: ";
         cin >> delPass;
 
+        // this will open the og file with all the students data
         ifstream inFile(FILE_PATH);
+        // this will store all accounts except the one to delete.
         ofstream outFile("temp.txt");
         
+        //  just a check to see if the file exists
         if (!inFile) {
             cout << "No user data found.\n";
             return false;
@@ -783,7 +792,9 @@ public:
             if ((delID == storedID || delID == storedEmail) && delPass == storedPass) {
                 found = true;
                 cout << "Account deleted successfully!\n";
-            } else {
+            } 
+            // if not the same account, copy this peice of data into the temp.txt file
+            else {
                 outFile << storedID << " " << storedUsername << " " << storedPass << " " << storedPhone << " " << storedEmail << " " << fixed << setprecision(2) << storedBalance << endl;
             }
         }
@@ -793,72 +804,79 @@ public:
 
         if (!found) {
             cout << "Invalid ID/Email or password. Account not deleted.\n";
+            // here we can remove the temp.txt file nonetheless as this contains only the copied data
             remove("temp.txt");
             return false;
         }
 
+         //  in this part we will simply rename the temp.txt file (where all the data is copied except for the account that has to be deleted)
+        // to students.txt. this way we have a new file with the name students.txt that does not contain the deleted accound
         remove(FILE_PATH.c_str());
         rename("temp.txt", FILE_PATH.c_str());
         return true;
     }
 
     bool isValidPhoneNumber(string phone) {
-        if (phone.length() != 11) return false;
+        if (phone.length() != 11) 
+            return false;
         for (char c : phone) {
-            if (!isdigit(c)) return false;
+            if (!isdigit(c)) 
+                return false;
         }
         return true;
     }
-
+    // this is a check if the entered email is correct. (can find this on google easily)
+    // the breakdown for this strinng statement:
+    // | `^`                 | start of string                                 |
+    // | `[a-zA-Z0-9._%+-]+` | username part (letters, numbers, ., _, %, +, -) |
+    // | `@`                 | must contain '@'                                |
+    // | `[a-zA-Z0-9.-]+`    | domain name (gmail, yahoo, hu, etc.)            |
+    // | `\.`                | must contain a dot '.'                          |
+    // | `[a-zA-Z]{2,}`      | domain extension: com, pk, edu, org, etc.       |
+    // | `$`                 | end of string                                   |
     bool isValidEmail(string email) {
         regex emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
         return regex_match(email, emailRegex);
     }
-
-    void updateBalanceInFile() {
-        ifstream inFile(FILE_PATH);
-        if (!inFile) {
-            cout << "Error opening file for reading!\n";
-            return;
-        }
-
-        vector<string> ids, usernames, passwords, phones, emails;
-        vector<double> balances;
-
-        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
-        double storedBalance;
-
-        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
-            if (storedID == id) {
-                storedBalance = balance.getBalance();
-            }
-
-            ids.push_back(storedID);
-            usernames.push_back(storedUsername);
-            passwords.push_back(storedPass);
-            phones.push_back(storedPhone);
-            emails.push_back(storedEmail);
-            balances.push_back(storedBalance);
-        }
-        inFile.close();
-
-        ofstream outFile(FILE_PATH);
-        if (!outFile) {
-            cout << "Error opening file for writing!\n";
-            return;
-        }
-
-        for (size_t i = 0; i < ids.size(); i++) {
-            outFile << ids[i] << " "
-                    << usernames[i] << " "
-                    << passwords[i] << " "
-                    << phones[i] << " "
-                    << emails[i] << " "
-                    << fixed << setprecision(2) << balances[i] << endl;
-        }
-
-        outFile.close();
+// this updates the balacne of the student whos is currently logged in
+void updateBalanceInFile() {
+    ifstream inFile(FILE_PATH);
+    ofstream outFile("temp.txt");
+    
+    if (!inFile) {
+        cout << "Error opening file for reading!\n";
+        return;
     }
+    
+    if (!outFile) {
+        cout << "Error opening temp file for writing!\n";
+        inFile.close();
+        return;
+    }
+    
+    string storedID, storedUsername, storedPass, storedPhone, storedEmail;
+    double storedBalance;
+    
+    while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+        // heree we will Update balance if this is the current logged-in student
+        if (storedID == id) {
+            storedBalance = balance.getBalance();
+        }
+        // Write to temp file
+        outFile << storedID << " " << storedUsername << " " << storedPass << " " 
+                << storedPhone << " " << storedEmail << " " 
+                << fixed << setprecision(2) << storedBalance << endl;
+    }
+    
+    inFile.close();
+    outFile.close();
+
+    // Replace original file with updated temp file
+    // here we are renaming the temp.txt file as student.txt to store the previous data + the updated data taht has updated balance of the student
+
+    remove(FILE_PATH.c_str());
+    rename("temp.txt", FILE_PATH.c_str());
+}
 
     void checkout() {
         if (cart.isEmpty()) {
@@ -880,6 +898,8 @@ public:
         int paymentChoice;
         while (!(cin >> paymentChoice) || paymentChoice < 1 || paymentChoice > 3) {
             cin.clear();
+            // i added cin.ignore over here. its important as without this the code will be stuck in an infinite loop if a user enters an invalid payment choice
+            // this is bcz even when the cin.clear() removes the value the incorrect value is still in buffer (cauisng an infinite loop)
             cin.ignore(10000, '\n');
             cout << "Invalid choice. Please enter 1, 2, or 3: ";
         }
@@ -988,7 +1008,7 @@ int main() {
         menu.resetStock();
         ingredientInventory.reset();
     }
-
+    // we are using a do while loop to make sure interface is displayed till the user enters 0
     do {
         cout << "\nGrabNob Bakery\n";
         student.balance.displayBalance();
@@ -1007,11 +1027,15 @@ int main() {
                 menu.displayCategories();
                 int cat = getValidInput(0, (int)menu.categories.size());
                 if (cat > 0) {
+                    // we have done "cat - 1" as we are accessing a vector categoies from here (basically input-ing index)
                     menu.displayCategoryMenu(cat - 1);
+                    // item num is basically sabdwiches, burgers etc.
+                    // get valid input will first check validity of the input and then insert in itemNum
                     int itemNum = getValidInput(0, (int)menu.categories[cat - 1].items.size());
                     if (itemNum > 0) {
                         Item *selected = menu.getItemRef(cat - 1, itemNum - 1);
-                        if (!selected) break;
+                        if (!selected) 
+                            break;
 
                         if (selected->name == "Make Your Own Sandwich") {
                             CustomSandwich cs;
@@ -1026,16 +1050,23 @@ int main() {
 
                             if (!ingredientInventory.hasEnoughAll(cs.chosenIngredientKeys, qty)) {
                                 cout << "Not enough ingredient stock for " << qty << " sandwich(es).\n";
+                                // this loop tells the number of ingredients available 
                                 for (auto &k : cs.chosenIngredientKeys) {
                                     cout << "   " << k << ": " << ingredientInventory.stock[k] << " available\n";
                                 }
-                            } else {
+                            } 
+                            else {
+                                // if the requiered quantity is there, then we'll remove that many from the stock
+                                // then we will create a vector with the key (item name) and qty of that item
+                                // fianlly we will add that in our cart
                                 ingredientInventory.consumeAll(cs.chosenIngredientKeys, qty);
                                 vector<pair<string,int>> usage;
-                                for (auto &k : cs.chosenIngredientKeys) usage.push_back({k, qty});
+                                for (auto &k : cs.chosenIngredientKeys) 
+                                    usage.push_back({k, qty});
                                 student.cart.addItem(customSample.name, customSample.price, qty, true, usage);
                             }
-                        } else {
+                        } 
+                        else {
                             cout << "Enter quantity to add: ";
                             int qty;
                             while (!(cin >> qty) || qty <= 0) {
@@ -1045,7 +1076,8 @@ int main() {
                             }
                             if (qty > selected->quantity) {
                                 cout << "Not enough stock. Available: " << selected->quantity << "\n";
-                            } else {
+                            } 
+                            else {
                                 selected->quantity -= qty;
                                 student.cart.addItem(selected->name, selected->price, qty, false, {});
                             }
@@ -1071,20 +1103,22 @@ int main() {
                             cin.ignore(10000, '\n');
                             cout << "Invalid quantity. Enter a number between 1 and " << itemToRemove.quantity << ": ";
                         }
-
+                        // restore stock if the item has beeen removed (this is for normal items + the ingredients for the custom sandwich)
                         if (itemToRemove.isCustom) {
                             vector<pair<string,int>> restoreUsage;
                             for (auto &p : itemToRemove.ingredientUsage) {
                                 restoreUsage.push_back({p.first, qtyToRemove});
                             }
                             ingredientInventory.restoreAll(restoreUsage);
-                        } else {
+                        } 
+                        else {
                             menu.increaseStockByName(itemToRemove.name, qtyToRemove);
                         }
 
                         itemToRemove.quantity -= qtyToRemove;
                         cout << "Removed " << qtyToRemove << " of " << itemToRemove.name << " from cart.\n";
-
+                        
+                        // if quantity reaches 0 then we will erase the item completely. erase is just a fucntion of vectors
                         if (itemToRemove.quantity == 0) {
                             student.cart.items.erase(student.cart.items.begin() + (removeIndex - 1));
                         }
@@ -1106,9 +1140,11 @@ int main() {
                 int histChoice = getValidInput(1, 3);
                 if (histChoice == 1) {
                     student.orderHistory.displayAllOrders();
-                } else if (histChoice == 2) {
+                } 
+                else if (histChoice == 2) {
                     student.orderHistory.displayCompletedOrders();
-                } else {
+                } 
+                else {
                     string ordID;
                     cout << "Enter Order ID: ";
                     cin >> ordID;
@@ -1123,7 +1159,8 @@ int main() {
                 if (rechargeAmount > 0) {
                     student.balance.rechargeBalance(rechargeAmount);
                     student.updateBalanceInFile();
-                } else {
+                } 
+                else {
                     cout << "Invalid amount!\n";
                 }
                 break;
