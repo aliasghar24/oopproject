@@ -401,23 +401,21 @@ public:
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
             int seconds = remaining % 60;
-            cout << "Time Remaining: " << setfill('0') << setw(2) << minutes << ":" 
-                 << setw(2) << seconds << "\n";
+            cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
         }
     }
 
     void displayOrderCompact() {
         cout << "\nOrder ID: " << orderID << " | Customer: " << username << " | Date: " << orderDate << " | Total: Rs. " << totalAmount;
         updateStatus();
-        cout << " | Status: " << status;
+        cout << " | Status: " << status << endl;
         
         if (status == "Preparing") {
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
             int seconds = remaining % 60;
-            cout << " | Time: " << setfill('0') << setw(2) << minutes << ":" << setw(2) << seconds;
+            cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
         }
-        cout << "\n";
     }
 };
 
@@ -639,7 +637,7 @@ private:
     double totalBalance;
 
 public:
-    Balance(double initial = 1000) : totalBalance(initial) {}
+    Balance(double initial = 0) : totalBalance(initial) {}
 
     double getBalance() {
         return totalBalance;
