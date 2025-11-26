@@ -13,6 +13,74 @@ using namespace std;
 const string FILE_PATH = "Students.txt";
 const string ORDERS_FILE = "Orders.txt";
 
+// --------------------- PaymentMethod (BASE CLASS) ---------------------
+class PaymentMethod {
+public:
+    virtual ~PaymentMethod() {}
+    
+    virtual bool processPayment(double amount, double &balance) = 0;
+    virtual string getMethodName() = 0;
+    virtual void displayPaymentInfo() = 0;
+};
+
+// --------------------- OnlinePayment (CHILD CLASS) ---------------------
+class OnlinePayment : public PaymentMethod {
+public:
+    bool processPayment(double amount, double &balance) override {
+        if (amount > balance) {
+            std::cout << "Insufficient balance!\n";
+            return false;
+        }
+        balance -= amount;
+        std::cout << "Online payment of Rs. " << fixed << setprecision(2) << amount << " processed successfully!\n";
+        return true;
+    }
+    
+    string getMethodName() override {
+        return "Online";
+    }
+    
+    void displayPaymentInfo() override {
+        std::cout << "Payment Method: Online (Deducted from wallet)\n";
+    }
+};
+
+// --------------------- CardPayment (CHILD CLASS) ---------------------
+class CardPayment : public PaymentMethod {
+public:
+    bool processPayment(double amount, double &balance) override {
+        std::cout << "Processing card payment of Rs. " << fixed << setprecision(2) << amount << "...\n";
+        std::cout << "Please pay with your card at the counter.\n";
+        return true;
+    }
+    
+    string getMethodName() override {
+        return "Card";
+    }
+    
+    void displayPaymentInfo() override {
+        std::cout << "Payment Method: Card (Pay at counter)\n";
+    }
+};
+
+// --------------------- CashPayment (CHILD CLASS) ---------------------
+class CashPayment : public PaymentMethod {
+public:
+    bool processPayment(double amount, double &balance) override {
+        std::cout << "Cash payment of Rs. " << fixed << setprecision(2) << amount << " registered.\n";
+        std::cout << "Please pay in cash at the counter.\n";
+        return true;
+    }
+    
+    string getMethodName() override {
+        return "Cash";
+    }
+    
+    void displayPaymentInfo() override {
+        std::cout << "Payment Method: Cash (Pay at counter)\n";
+    }
+};
+
 // --------------------- Item ---------------------
 class Item {
 public:
@@ -76,17 +144,17 @@ public:
     }
 
     void displayForCustomBuilder() {
-        cout << "\n--- Ingredient Availability (per-session) ---\n";
-        cout << "Breads: White(" << stock["Bread_White"] << "), Brown(" << stock["Bread_Brown"]
+        std::cout << "\n--- Ingredient Availability (per-session) ---\n";
+        std::cout << "Breads: White(" << stock["Bread_White"] << "), Brown(" << stock["Bread_Brown"]
              << "), Multigrain(" << stock["Bread_Multigrain"] << ")\n";
-        cout << "Proteins: Chicken(" << stock["Protein_Chicken"] << "), Beef(" << stock["Protein_Beef"]
+        std::cout << "Proteins: Chicken(" << stock["Protein_Chicken"] << "), Beef(" << stock["Protein_Beef"]
              << "), Egg(" << stock["Protein_Egg"] << ")\n";
-        cout << "Veggies: Lettuce(" << stock["Veg_Lettuce"] << "), Cucumber(" << stock["Veg_Cucumber"]
+        std::cout << "Veggies: Lettuce(" << stock["Veg_Lettuce"] << "), Cucumber(" << stock["Veg_Cucumber"]
              << "), Olives(" << stock["Veg_Olives"] << "), Onions(" << stock["Veg_Onions"] << ")\n";
-        cout << "Sauces: Mayo(" << stock["Sauce_Mayo"] << "), Garlic(" << stock["Sauce_Garlic"]
+        std::cout << "Sauces: Mayo(" << stock["Sauce_Mayo"] << "), Garlic(" << stock["Sauce_Garlic"]
              << "), Chipotle(" << stock["Sauce_Chipotle"] << ")\n";
-        cout << "Extras: Cheese(" << stock["Extra_Cheese"] << ")\n";
-        cout << "--------------------------------------------\n";
+        std::cout << "Extras: Cheese(" << stock["Extra_Cheese"] << ")\n";
+        std::cout << "--------------------------------------------\n";
     }
 };
 
@@ -105,17 +173,17 @@ public:
     Item buildSandwich() {
         chosenIngredientKeys.clear();
         price = 0;
-        cout << "\n====== MAKE YOUR OWN SANDWICH ======\n";
+        std::cout << "\n====== MAKE YOUR OWN SANDWICH ======\n";
 
         ingredientInventory.displayForCustomBuilder();
 
         // Bread
-        cout << "Choose Bread:\n1. White (Rs. 50)\n2. Brown (Rs. 60)\n3. Multigrain (Rs. 80)\n";
+        std::cout << "Choose Bread:\n1. White (Rs. 50)\n2. Brown (Rs. 60)\n3. Multigrain (Rs. 80)\n";
         int b;
         while (!(cin >> b) || b < 1 || b > 3) {
             cin.clear();
             cin.ignore(10000, '\n');
-            cout << "Invalid. Choose 1-3: ";
+            std::cout << "Invalid. Choose 1-3: ";
         }
         if (b == 1) {
             bread = "White"; breadKey = "Bread_White"; price += 50;
@@ -127,12 +195,12 @@ public:
         chosenIngredientKeys.push_back(breadKey);
 
         // Protein
-        cout << "\nChoose Protein:\n1. Chicken (Rs. 150)\n2. Beef (Rs. 200)\n3. Egg (Rs. 70)\n4. No protein\n";
+        std::cout << "\nChoose Protein:\n1. Chicken (Rs. 150)\n2. Beef (Rs. 200)\n3. Egg (Rs. 70)\n4. No protein\n";
         int p;
         while (!(cin >> p) || p < 1 || p > 4) {
             cin.clear();
             cin.ignore(10000, '\n');
-            cout << "Invalid. Choose 1-4: ";
+            std::cout << "Invalid. Choose 1-4: ";
         }
         if (p == 1) { protein = "Chicken"; proteinKey = "Protein_Chicken"; price += 150; chosenIngredientKeys.push_back(proteinKey); }
         else if (p == 2) { protein = "Beef"; proteinKey = "Protein_Beef"; price += 200; chosenIngredientKeys.push_back(proteinKey); }
@@ -140,12 +208,12 @@ public:
         else { protein = "None"; proteinKey = ""; }
 
         // Veggies
-        cout << "\nChoose Veggies:\n1. Lettuce (Rs. 40)\n2. Cucumber (Rs. 50)\n3. Olives (Rs. 30)\n4. Onions (Rs. 20)\n5. No Veggies\n";
+        std::cout << "\nChoose Veggies:\n1. Lettuce (Rs. 40)\n2. Cucumber (Rs. 50)\n3. Olives (Rs. 30)\n4. Onions (Rs. 20)\n5. No Veggies\n";
         int v;
         while (!(cin >> v) || v < 1 || v > 5) {
             cin.clear();
             cin.ignore(10000, '\n');
-            cout << "Invalid. Choose 1-5: ";
+            std::cout << "Invalid. Choose 1-5: ";
         }
         if (v == 1) { veggies = "Lettuce"; vegKey = "Veg_Lettuce"; price += 40; chosenIngredientKeys.push_back(vegKey); }
         else if (v == 2) { veggies = "Cucumber"; vegKey = "Veg_Cucumber"; price += 50; chosenIngredientKeys.push_back(vegKey);}
@@ -154,12 +222,12 @@ public:
         else { veggies = "None"; vegKey = ""; }
 
         // Sauce
-        cout << "\nChoose Sauce (Rs. 20):\n1. Mayo\n2. Garlic\n3. Chipotle\n4. No Sauce\n";
+        std::cout << "\nChoose Sauce (Rs. 20):\n1. Mayo\n2. Garlic\n3. Chipotle\n4. No Sauce\n";
         int s;
         while (!(cin >> s) || s < 1 || s > 4) {
             cin.clear();
             cin.ignore(10000, '\n');
-            cout << "Invalid. Choose 1-4: ";
+            std::cout << "Invalid. Choose 1-4: ";
         }
         if (s == 1) { sauce = "Mayo"; sauceKey = "Sauce_Mayo"; price += 20; chosenIngredientKeys.push_back(sauceKey); }
         else if (s == 2) { sauce = "Garlic"; sauceKey = "Sauce_Garlic"; price += 20; chosenIngredientKeys.push_back(sauceKey); }
@@ -167,12 +235,12 @@ public:
         else { sauce = "None"; sauceKey = ""; }
 
         // Extras
-        cout << "\nAdd Extra Cheese? (Rs. 50)\n1. Yes\n2. No\n";
+        std::cout << "\nAdd Extra Cheese? (Rs. 50)\n1. Yes\n2. No\n";
         int e;
         while (!(cin >> e) || (e != 1 && e != 2)) {
             cin.clear();
             cin.ignore(10000, '\n');
-            cout << "Invalid. Choose 1 or 2: ";
+            std::cout << "Invalid. Choose 1 or 2: ";
         }
         if (e == 1) { extras = "Cheese"; extraKey = "Extra_Cheese"; price += 50; chosenIngredientKeys.push_back(extraKey); }
         else { extras = "None"; extraKey = ""; }
@@ -195,12 +263,12 @@ public:
     }
 
     void displayCategory() {
-        cout << "\n" << categoryName << ":\n";
+        std::cout << "\n" << categoryName << ":\n";
         for (size_t i = 0; i < items.size(); i++) {
-            cout << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price
+            std::cout << i + 1 << ". " << items[i].name << " - Rs. " << items[i].price
                  << " | Stock: " << items[i].quantity;
-            if (items[i].quantity == 0) cout << " (OUT OF STOCK)";
-            cout << "\n";
+            if (items[i].quantity == 0) std::cout << " (OUT OF STOCK)";
+            std::cout << "\n";
         }
     }
 };
@@ -233,9 +301,9 @@ public:
     }
 
     void displayCategories() {
-        cout << "\nMenu Categories:\n";
+        std::cout << "\nMenu Categories:\n";
         for (size_t i = 0; i < categories.size(); i++)
-            cout << i + 1 << ". " << categories[i].categoryName << "\n";
+            std::cout << i + 1 << ". " << categories[i].categoryName << "\n";
     }
 
     void displayCategoryMenu(int categoryIndex) {
@@ -286,12 +354,12 @@ public:
         for (auto &ci : items) {
             if (!ci.isCustom && !isCustom && ci.name == name) {
                 ci.quantity += qty;
-                cout << "Increased " << ci.name << " quantity in cart by " << qty << ".\n";
+                std::cout << "Increased " << ci.name << " quantity in cart by " << qty << ".\n";
                 return;
             }
             if (ci.isCustom && isCustom && ci.name == name && ci.ingredientUsage == usage) {
                 ci.quantity += qty;
-                cout << "Increased custom sandwich quantity in cart by " << qty << ".\n";
+                std::cout << "Increased custom sandwich quantity in cart by " << qty << ".\n";
                 return;
             }
         }
@@ -299,16 +367,16 @@ public:
         c.isCustom = isCustom;
         c.ingredientUsage = usage;
         items.push_back(c);
-        cout << "Added " << name << " x" << qty << " to cart.\n";
+        std::cout << "Added " << name << " x" << qty << " to cart.\n";
     }
 
     bool removeItem(int index, CartItem &removed) {
         if (index < 0 || index >= (int)items.size()) {
-            cout << "Invalid index.\n";
+            std::cout << "Invalid index.\n";
             return false;
         }
         removed = items[index];
-        cout << "Removed " << removed.name << " x" << removed.quantity << " from cart.\n";
+        std::cout << "Removed " << removed.name << " x" << removed.quantity << " from cart.\n";
         items.erase(items.begin() + index);
         return true;
     }
@@ -321,22 +389,22 @@ public:
     }
 
     void displayCart() {
-        cout << "\nShopping Cart:\n";
+        std::cout << "\nShopping Cart:\n";
         if (items.empty()) {
-            cout << "Cart is empty.\n";
+            std::cout << "Cart is empty.\n";
             return;
         }
         for (size_t i = 0; i < items.size(); i++) {
-            cout << i + 1 << ". " << items[i].name << " x" << items[i].quantity
+            std::cout << i + 1 << ". " << items[i].name << " x" << items[i].quantity
                  << " - Rs. " << items[i].price << " each"
                  << " | Subtotal: Rs. " << items[i].price * items[i].quantity << "\n";
             if (items[i].isCustom) {
-                cout << "   Ingredients:\n";
+                std::cout << "   Ingredients:\n";
                 for (auto &p : items[i].ingredientUsage)
-                    cout << "    - " << p.first << "\n";
+                    std::cout << "    - " << p.first << "\n";
             }
         }
-        cout << "Total: Rs. " << getTotal() << "\n";
+        std::cout << "Total: Rs. " << getTotal() << "\n";
     }
 
     void clearCart() {
@@ -384,37 +452,37 @@ public:
     }
 
     void displayOrder() {
-        cout << "\nOrder ID: " << orderID;
-        cout << "\nCustomer: " << username;
-        cout << "\nDate: " << orderDate;
-        cout << "\nItems:\n";
+        std::cout << "\nOrder ID: " << orderID;
+        std::cout << "\nCustomer: " << username;
+        std::cout << "\nDate: " << orderDate;
+        std::cout << "\nItems:\n";
         for (size_t i = 0; i < items.size(); i++)
-            cout << "  " << i + 1 << ". " << items[i].name << " x" << quantities[i] << " - Rs. " << items[i].price << " each | Subtotal: Rs. " << (items[i].price * quantities[i]) << "\n";
-        cout << "Total: Rs. " << totalAmount << "\n";
-        cout << "Payment Method: " << paymentMethod << "\n";
-        cout << "Phone: " << phoneNumber << "\n";
+            std::cout << "  " << i + 1 << ". " << items[i].name << " x" << quantities[i] << " - Rs. " << items[i].price << " each | Subtotal: Rs. " << (items[i].price * quantities[i]) << "\n";
+        std::cout << "Total: Rs. " << totalAmount << "\n";
+        std::cout << "Payment Method: " << paymentMethod << "\n";
+        std::cout << "Phone: " << phoneNumber << "\n";
         
         updateStatus();
-        cout << "Status: " << status << "\n";
+        std::cout << "Status: " << status << "\n";
         
         if (status == "Preparing") {
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
             int seconds = remaining % 60;
-            cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
+            std::cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
         }
     }
 
     void displayOrderCompact() {
-        cout << "\nOrder ID: " << orderID << " | Customer: " << username << " | Date: " << orderDate << " | Total: Rs. " << totalAmount;
+        std::cout << "\nOrder ID: " << orderID << " | Customer: " << username << " | Date: " << orderDate << " | Total: Rs. " << totalAmount;
         updateStatus();
-        cout << " | Status: " << status << endl;
+        std::cout << " | Status: " << status << endl;
         
         if (status == "Preparing") {
             int remaining = getTimeRemaining();
             int minutes = remaining / 60;
             int seconds = remaining % 60;
-            cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
+            std::cout << "Time Remaining: "<<setfill('0')<<setw(2)<<minutes<< ":" << setw(2) << seconds << "\n";
         }
     }
 };
@@ -472,13 +540,13 @@ public:
         Order newOrder(ordID, username, date, items, quantities, total, method, phone);
         orders.push_back(newOrder);
         saveOrderToFile(newOrder);
-        cout << "Order placed successfully! Order ID: " << ordID << "\n";
+        std::cout << "Order placed successfully! Order ID: " << ordID << "\n";
     }
 
     void saveOrderToFile(Order &order) {
         ofstream outFile(ORDERS_FILE, ios::app);
         if (!outFile) {
-            cout << "Error saving order!\n";
+            std::cout << "Error saving order!\n";
             return;
         }
         outFile << order.orderID << "||" << order.username << "||" << order.orderDate << "||" 
@@ -560,7 +628,7 @@ public:
                 loadedOrder.orderTime = orderTime;
                 orders.push_back(loadedOrder);
             } catch (const exception &e) {
-                cout << "Warning: Could not load order from file: " << e.what() << "\n";
+                std::cout << "Warning: Could not load order from file: " << e.what() << "\n";
                 continue;
             }
         }
@@ -576,14 +644,14 @@ public:
         }
 
         if (ongoing.empty()) {
-            cout << "No ongoing orders.\n";
+            std::cout << "No ongoing orders.\n";
             return;
         }
 
-        cout << "\nOngoing Orders:\n";
+        std::cout << "\nOngoing Orders:\n";
         for (auto &order : ongoing) {
             order.displayOrder();
-            cout << "---\n";
+            std::cout << "---\n";
         }
     }
 
@@ -596,11 +664,11 @@ public:
         }
 
         if (completed.empty()) {
-            cout << "No completed orders.\n";
+            std::cout << "No completed orders.\n";
             return;
         }
 
-        cout << "\nCompleted Orders:\n";
+        std::cout << "\nCompleted Orders:\n";
         for (auto &order : completed) {
             order.displayOrderCompact();
         }
@@ -618,7 +686,7 @@ public:
                 return;
             }
         }
-        cout << "Order not found.\n";
+        std::cout << "Order not found.\n";
     }
 };
 
@@ -635,12 +703,12 @@ public:
     }
 
     void displayBalance() {
-        cout << "Current Balance: Rs. " << fixed << setprecision(2) << totalBalance << "\n";
+        std::cout << "Current Balance: Rs. " << fixed << setprecision(2) << totalBalance << "\n";
     }
 
     bool deductAmount(double amount) {
         if (amount > totalBalance) {
-            cout << "Insufficient balance!\n";
+            std::cout << "Insufficient balance!\n";
             return false;
         }
         totalBalance -= amount;
@@ -653,7 +721,7 @@ public:
 
     bool rechargeBalance(double amount) {
         addAmount(amount);
-        cout << "Recharged Rs. " << amount << " successfully!\n";
+        std::cout << "Recharged Rs. " << amount << " successfully!\n";
         return true;
     }
 };
@@ -972,25 +1040,25 @@ int main() {
     Student student;
     int choice;
 
-    cout << "GrabNob Bakery System\n";
-    cout << "Your Campus Food Ordering App\n\n";
+    std::cout << "GrabNob Bakery System\n";
+    std::cout << "Your Campus Food Ordering App\n\n";
     
-    cout << "1. Register New Account\n";
-    cout << "2. Login\n";
-    cout << "3. Delete Account\n";
+    std::cout << "1. Register New Account\n";
+    std::cout << "2. Login\n";
+    std::cout << "3. Delete Account\n";
     choice = getValidInput(1, 3);
 
     if (choice == 1) {
-        cout << "\nRegistration:\n";
+        std::cout << "\nRegistration:\n";
         student.inputDetails();
         student.saveToFile();
-        cout << "Please login to continue.\n";
+        std::cout << "Please login to continue.\n";
         return 0;
     } else if (choice == 3) {
         Student::deleteAccount();
         return 0;
     } else {
-        cout << "\nLogin:\n";
+        std::cout << "\nLogin:\n";
         if (!student.login()) {
             return 0;
         }
@@ -999,16 +1067,16 @@ int main() {
     }
     // we are using a do while loop to make sure interface is displayed till the user enters 0
     do {
-        cout << "\nGrabNob Bakery\n";
+        std::cout << "\nGrabNob Bakery\n";
         student.balance.displayBalance();
-        cout << "\n1. Browse Menu\n";
-        cout << "2. View Shopping Cart\n";
-        cout << "3. Remove Item from Cart\n";
-        cout << "4. Checkout\n";
-        cout << "5. View Ongoing Orders\n";
-        cout << "6. View Order History\n";
-        cout << "7. Recharge Balance\n";
-        cout << "0. Logout\n";
+        std::cout << "\n1. Browse Menu\n";
+        std::cout << "2. View Shopping Cart\n";
+        std::cout << "3. Remove Item from Cart\n";
+        std::cout << "4. Checkout\n";
+        std::cout << "5. View Ongoing Orders\n";
+        std::cout << "6. View Order History\n";
+        std::cout << "7. Recharge Balance\n";
+        std::cout << "0. Logout\n";
         choice = getValidInput(0, 7);
 
         switch (choice) {
@@ -1029,19 +1097,19 @@ int main() {
                         if (selected->name == "Make Your Own Sandwich") {
                             CustomSandwich cs;
                             Item customSample = cs.buildSandwich();
-                            cout << "Enter quantity of this custom sandwich to add: ";
+                            std::cout << "Enter quantity of this custom sandwich to add: ";
                             int qty;
                             while (!(cin >> qty) || qty <= 0) {
                                 cin.clear();
                                 cin.ignore(10000, '\n');
-                                cout << "Invalid quantity. Enter positive integer: ";
+                                std::cout << "Invalid quantity. Enter positive integer: ";
                             }
 
                             if (!ingredientInventory.hasEnoughAll(cs.chosenIngredientKeys, qty)) {
-                                cout << "Not enough ingredient stock for " << qty << " sandwich(es).\n";
+                                std::cout << "Not enough ingredient stock for " << qty << " sandwich(es).\n";
                                 // this loop tells the number of ingredients available 
                                 for (auto &k : cs.chosenIngredientKeys) {
-                                    cout << "   " << k << ": " << ingredientInventory.stock[k] << " available\n";
+                                    std::cout << "   " << k << ": " << ingredientInventory.stock[k] << " available\n";
                                 }
                             } 
                             else {
@@ -1056,15 +1124,15 @@ int main() {
                             }
                         } 
                         else {
-                            cout << "Enter quantity to add: ";
+                            std::cout << "Enter quantity to add: ";
                             int qty;
                             while (!(cin >> qty) || qty <= 0) {
                                 cin.clear();
                                 cin.ignore(10000, '\n');
-                                cout << "Invalid quantity. Enter positive integer: ";
+                                std::cout << "Invalid quantity. Enter positive integer: ";
                             }
                             if (qty > selected->quantity) {
-                                cout << "Not enough stock. Available: " << selected->quantity << "\n";
+                                std::cout << "Not enough stock. Available: " << selected->quantity << "\n";
                             } 
                             else {
                                 selected->quantity -= qty;
@@ -1084,13 +1152,13 @@ int main() {
                     int removeIndex = getValidInput(0, (int)student.cart.items.size());
                     if (removeIndex > 0) {
                         CartItem &itemToRemove = student.cart.items[removeIndex - 1];
-                        cout << "You have " << itemToRemove.quantity << " of " << itemToRemove.name << " in your cart.\n";
-                        cout << "Enter quantity to remove (1-" << itemToRemove.quantity << "): ";
+                        std::cout << "You have " << itemToRemove.quantity << " of " << itemToRemove.name << " in your cart.\n";
+                        std::cout << "Enter quantity to remove (1-" << itemToRemove.quantity << "): ";
                         int qtyToRemove;
                         while (!(cin >> qtyToRemove) || qtyToRemove < 1 || qtyToRemove > itemToRemove.quantity) {
                             cin.clear();
                             cin.ignore(10000, '\n');
-                            cout << "Invalid quantity. Enter a number between 1 and " << itemToRemove.quantity << ": ";
+                            std::cout << "Invalid quantity. Enter a number between 1 and " << itemToRemove.quantity << ": ";
                         }
                         // restore stock if the item has beeen removed (this is for normal items + the ingredients for the custom sandwich)
                         if (itemToRemove.isCustom) {
@@ -1105,7 +1173,7 @@ int main() {
                         }
 
                         itemToRemove.quantity -= qtyToRemove;
-                        cout << "Removed " << qtyToRemove << " of " << itemToRemove.name << " from cart.\n";
+                        std::cout << "Removed " << qtyToRemove << " of " << itemToRemove.name << " from cart.\n";
                         
                         // if quantity reaches 0 then we will erase the item completely. erase is just a fucntion of vectors
                         if (itemToRemove.quantity == 0) {
@@ -1123,9 +1191,9 @@ int main() {
                 student.orderHistory.displayOngoingOrders();
                 break;
             case 6: {
-                cout << "\n1. View All Orders\n";
-                cout << "2. View Completed Orders\n";
-                cout << "3. Track Specific Order\n";
+                std::cout << "\n1. View All Orders\n";
+                std::cout << "2. View Completed Orders\n";
+                std::cout << "3. Track Specific Order\n";
                 int histChoice = getValidInput(1, 3);
                 if (histChoice == 1) {
                     student.orderHistory.displayAllOrders();
@@ -1135,7 +1203,7 @@ int main() {
                 } 
                 else {
                     string ordID;
-                    cout << "Enter Order ID: ";
+                    std::cout << "Enter Order ID: ";
                     cin >> ordID;
                     student.orderHistory.trackOrder(ordID);
                 }
@@ -1143,19 +1211,19 @@ int main() {
             }
             case 7: {
                 double rechargeAmount;
-                cout << "Enter amount to recharge (Rs.): ";
+                std::cout << "Enter amount to recharge (Rs.): ";
                 cin >> rechargeAmount;
                 if (rechargeAmount > 0) {
                     student.balance.rechargeBalance(rechargeAmount);
                     student.updateBalanceInFile();
                 } 
                 else {
-                    cout << "Invalid amount!\n";
+                    std::cout << "Invalid amount!\n";
                 }
                 break;
             }
             case 0:
-                cout << "Logging out. Thank you for using GrabNob!\n";
+                std::cout << "Logging out. Thank you for using GrabNob!\n";
                 break;
         }
 
