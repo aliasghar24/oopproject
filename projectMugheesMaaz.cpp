@@ -425,7 +425,7 @@ private:
     int orderCounter;
 
 public:
-    OrderHistory() : orderCounter(1000) {
+    OrderHistory() : orderCounter(0) {
         loadOrderCounterFromFile();
         loadOrdersFromFile();
     }
@@ -441,8 +441,7 @@ public:
             if (line.empty()) continue;
             size_t pos = 0;
             string orderID = line.substr(0, line.find("||"));
-            string numberPart = orderID.substr(8);
-            int orderNum = stoi(numberPart.substr(3));
+            int orderNum = stoi(orderID.substr(11));
             if (orderNum > orderCounter) {
                 orderCounter = orderNum;
             }
@@ -463,7 +462,7 @@ public:
         time_t now = time(0);
         tm* timeinfo = localtime(&now);
         char dateStr[20];
-        strftime(dateStr, sizeof(dateStr), "%d-%m-%Y %H:%M", timeinfo);
+        strftime(dateStr, sizeof(dateStr), "%d-%m-%Y %H:%M:%S", timeinfo);
         return string(dateStr);
     }
 
@@ -608,16 +607,8 @@ public:
     }
 
     void displayAllOrders() {
-        if (orders.empty()) {
-            cout << "No orders yet.\n";
-            return;
-        }
-
-        cout << "\nAll Orders:\n";
-        for (auto &order : orders) {
-            order.displayOrder();
-            cout << "---\n";
-        }
+        displayOngoingOrders();
+        displayCompletedOrders();
     }
 
     void trackOrder(string ordID) {
