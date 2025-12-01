@@ -156,6 +156,36 @@ public:
         std::cout << "Extras: Cheese(" << stock["Extra_Cheese"] << ")\n";
         std::cout << "--------------------------------------------\n";
     }
+    void saveToFile() {
+    ofstream outFile("IngredientStock.txt");
+    if (!outFile) return;
+    
+    for (auto &pair : stock) {
+        outFile << pair.first << "||" << pair.second << "\n";
+    }
+    outFile.close();
+}
+
+void loadFromFile() {
+    ifstream inFile("IngredientStock.txt");
+    if (!inFile) {
+        reset();
+        saveToFile();
+        return;
+    }
+    
+    stock.clear();
+    string line;
+    while (getline(inFile, line)) {
+        size_t pos = line.find("||");
+        if (pos != string::npos) {
+            string key = line.substr(0, pos);
+            int quantity = stoi(line.substr(pos + 2));
+            stock[key] = quantity;
+        }
+    }
+    inFile.close();
+}
 };
 
 IngredientInventory ingredientInventory;
@@ -332,6 +362,46 @@ public:
         if (itemIdx < 0 || itemIdx >= (int)categories[catIdx].items.size()) return nullptr;
         return &categories[catIdx].items[itemIdx];
     }
+    void saveStockToFile() {
+    ofstream outFile("MenuStock.txt");
+    if (!outFile) return;
+    
+    for (auto &cat : categories) {
+        for (auto &item : cat.items) {
+            outFile << item.name << "||" << item.quantity << "\n";
+        }
+    }
+    outFile.close();
+}
+
+void loadStockFromFile() {
+    ifstream inFile("MenuStock.txt");
+    if (!inFile) {
+        // If file doesn't exist, initialize with default stock
+        resetStock();
+        saveStockToFile();
+        return;
+    }
+    
+    string line;
+    while (getline(inFile, line)) {
+        size_t pos = line.find("||");
+        if (pos != string::npos) {
+            string itemName = line.substr(0, pos);
+            int quantity = stoi(line.substr(pos + 2));
+            
+            // Update quantity for matching item
+            for (auto &cat : categories) {
+                for (auto &item : cat.items) {
+                    if (item.name == itemName) {
+                        item.quantity = quantity;
+                    }
+                }
+            }
+        }
+    }
+    inFile.close();
+}
 };
 
 // --------------------- CartItem & ShoppingCart ---------------------
@@ -1037,6 +1107,7 @@ int getValidInput(int minVal, int maxVal) {
 
 int main() {
     Menu menu;
+    menu.loadStockFromFile();
     Student student;
     int choice;
 
@@ -1062,8 +1133,8 @@ int main() {
         if (!student.login()) {
             return 0;
         }
-        menu.resetStock();
-        ingredientInventory.reset();
+  
+        ingredientInventory.loadFromFile(); 
     }
     // we are using a do while loop to make sure interface is displayed till the user enters 0
     do {
@@ -1179,6 +1250,7 @@ int main() {
                         if (itemToRemove.quantity == 0) {
                             student.cart.items.erase(student.cart.items.begin() + (removeIndex - 1));
                         }
+                        menu.saveStockToFile();  
                     }
                 }
                 break;
@@ -1186,6 +1258,7 @@ int main() {
 
             case 4:
                 student.checkout();
+                menu.saveStockToFile();  
                 break;
             case 5:
                 student.orderHistory.displayOngoingOrders();

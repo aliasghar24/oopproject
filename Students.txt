@@ -1,4 +1,4 @@
-123 123 123 12345678900 maaz@gmail.com 4880.00
-10047 Muhammad Mughees 03212556074 ms10047@st.habib.edu.pk 1670.00
-00000 Ali ali123 03214675930 az00000@st.habib.edi.pk 2200.00
-123 Nadia 123 13133131111 nadia.nasir@sse.habib.edu.pk 500.00
+123 123 123 12345678900 maaz@gmail.com 4530.00
+10047 Muhammad Mughees 03212556074 ms10047@st.habib.edu.pk 1270.00
+00000 Ali ali123 03214675930 az00000@st.habib.edi.pk 1850.00
+123 Nadia 123 13133131111 nadia.nasir@sse.habib.edu.pk 4530.00
