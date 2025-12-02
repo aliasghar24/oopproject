@@ -4,8 +4,8 @@ Pizza Slice||5
 Make Your Own Sandwich||5
 Cookie||5
 Brownie||5
-Donut||5
+Donut||4
 Coffee||5
 Pepsi||5
 Tea||5
-Juice||5
+Juice||2
