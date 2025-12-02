@@ -1,238 +1,662 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <fstream>
+#include <vector>
 #include <string>
-using namespace sf;
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <iomanip>
+#include <regex>
+#include <unordered_map>
+#include <sstream>
 using namespace std;
 
-// Color theme
-const Color DARK_GREEN(34, 139, 34);
-const Color YELLOW(255, 215, 0);
-const Color PURPLE(147, 112, 219);
-const Color LIGHT_GREEN(144, 238, 144);
-const Color WHITE(255, 255, 255);
-const Color HOBNOB(65, 127, 104);
+const string FILE_PATH = "Students.txt";
+const string ORDERS_FILE = "Orders.txt";
 
-class LoginWindow {
+// ===================== GUI HELPER CLASSES =====================
+class Button {
+public:
+    sf::RectangleShape shape;
+    sf::Text text;
+    sf::Color normalColor;
+    sf::Color hoverColor;
+    sf::Color clickColor;
+    bool isHovered;
+    bool isClicked;
+
+    Button(float x, float y, float width, float height, const string& label, sf::Font& font) 
+        : text(font) {
+        shape.setPosition(sf::Vector2f(x, y));
+        shape.setSize(sf::Vector2f(width, height));
+        normalColor = sf::Color(70, 130, 180);
+        hoverColor = sf::Color(100, 149, 237);
+        clickColor = sf::Color(65, 105, 225);
+        shape.setFillColor(normalColor);
+
+        text.setString(label);
+        text.setCharacterSize(20);
+        text.setFillColor(sf::Color::White);
+        
+        sf::FloatRect textBounds = text.getLocalBounds();
+        text.setPosition(sf::Vector2f(
+            x + (width - textBounds.size.x) / 2.f,
+            y + (height - textBounds.size.y) / 2.f - 5
+        ));
+        
+        isHovered = false;
+        isClicked = false;
+    }
+
+    void update(sf::Vector2i mousePos) {
+        isHovered = shape.getGlobalBounds().contains(sf::Vector2f(mousePos));
+        
+        if (isClicked) {
+            shape.setFillColor(clickColor);
+        } else if (isHovered) {
+            shape.setFillColor(hoverColor);
+        } else {
+            shape.setFillColor(normalColor);
+        }
+    }
+
+    bool isPressed(sf::Event& event, sf::Vector2i mousePos) {
+        if (event.is<sf::Event::MouseButtonPressed>()) {
+            const auto& mouseBtn = event.getIf<sf::Event::MouseButtonPressed>();
+            if (mouseBtn && mouseBtn->button == sf::Mouse::Button::Left && isHovered) {
+                isClicked = true;
+                return false;
+            }
+        }
+        
+        if (event.is<sf::Event::MouseButtonReleased>()) {
+            const auto& mouseBtn = event.getIf<sf::Event::MouseButtonReleased>();
+            if (mouseBtn && mouseBtn->button == sf::Mouse::Button::Left && isClicked) {
+                isClicked = false;
+                return isHovered;
+            }
+        }
+        
+        return false;
+    }
+
+    void draw(sf::RenderWindow& window) {
+        window.draw(shape);
+        window.draw(text);
+    }
+};
+
+class InputBox {
+public:
+    sf::RectangleShape box;
+    sf::Text displayText;
+    sf::Text label;
+    string content;
+    bool isActive;
+    bool isPassword;
+    sf::Clock blinkClock;
+    bool showCursor;
+
+    InputBox(float x, float y, float width, float height, const string& labelText, sf::Font& font, bool password = false)
+        : displayText(font), label(font) {
+        box.setPosition(sf::Vector2f(x, y));
+        box.setSize(sf::Vector2f(width, height));
+        box.setFillColor(sf::Color::White);
+        box.setOutlineThickness(2);
+        box.setOutlineColor(sf::Color(100, 100, 100));
+
+        label.setString(labelText);
+        label.setCharacterSize(18);
+        label.setFillColor(sf::Color::White);
+        label.setPosition(sf::Vector2f(x, y - 30));
+
+        displayText.setCharacterSize(20);
+        displayText.setFillColor(sf::Color::Black);
+        displayText.setPosition(sf::Vector2f(x + 10, y + 10));
+
+        content = "";
+        isActive = false;
+        isPassword = password;
+        showCursor = true;
+    }
+
+    void setActive(bool active) {
+        isActive = active;
+        if (active) {
+            box.setOutlineColor(sf::Color(70, 130, 180));
+        } else {
+            box.setOutlineColor(sf::Color(100, 100, 100));
+        }
+    }
+
+    void handleInput(sf::Event& event) {
+        if (!isActive) return;
+
+        if (event.is<sf::Event::TextEntered>()) {
+            const auto& textEntered = event.getIf<sf::Event::TextEntered>();
+            if (textEntered) {
+                if (textEntered->unicode == 8 && content.length() > 0) { // Backspace
+                    content.pop_back();
+                } else if (textEntered->unicode >= 32 && textEntered->unicode < 128) {
+                    content += static_cast<char>(textEntered->unicode);
+                }
+                updateDisplay();
+            }
+        }
+    }
+
+    void updateDisplay() {
+        if (isPassword && !content.empty()) {
+            displayText.setString(string(content.length(), '*'));
+        } else {
+            displayText.setString(content);
+        }
+    }
+
+    void update() {
+        if (blinkClock.getElapsedTime().asSeconds() > 0.5f) {
+            showCursor = !showCursor;
+            blinkClock.restart();
+        }
+    }
+
+    void draw(sf::RenderWindow& window) {
+        window.draw(label);
+        window.draw(box);
+        window.draw(displayText);
+        
+        if (isActive && showCursor) {
+            sf::RectangleShape cursor(sf::Vector2f(2, 20));
+            cursor.setFillColor(sf::Color::Black);
+            sf::FloatRect textBounds = displayText.getGlobalBounds();
+            cursor.setPosition(sf::Vector2f(textBounds.position.x + textBounds.size.x + 2, box.getPosition().y + 10));
+            window.draw(cursor);
+        }
+    }
+
+    void clear() {
+        content = "";
+        updateDisplay();
+    }
+};
+
+// ===================== ORIGINAL CLASSES (Simplified for GUI) =====================
+class Item {
+public:
+    string name;
+    double price;
+    int quantity;
+    Item(string n = "", double p = 0, int q = 5) : name(n), price(p), quantity(q) {}
+};
+
+class Menu {
+public:
+    vector<vector<Item>> categories;
+    vector<string> categoryNames;
+
+    Menu() {
+        categoryNames = {"Savoury", "Sweets", "Beverages"};
+        
+        vector<Item> savoury = {
+            Item("Sandwich", 350, 5),
+            Item("Burger", 400, 5),
+            Item("Pizza Slice", 450, 5)
+        };
+        
+        vector<Item> sweets = {
+            Item("Cookie", 250, 5),
+            Item("Brownie", 300, 5),
+            Item("Donut", 200, 5)
+        };
+        
+        vector<Item> beverages = {
+            Item("Coffee", 400, 5),
+            Item("Pepsi", 60, 5),
+            Item("Tea", 150, 5),
+            Item("Juice", 200, 5)
+        };
+        
+        categories.push_back(savoury);
+        categories.push_back(sweets);
+        categories.push_back(beverages);
+    }
+};
+
+class Student {
+public:
+    string id;
+    string username;
+    string password;
+    string phoneNumber;
+    string email;
+    double balance;
+
+    Student() : balance(1000) {}
+
+    bool login(const string& loginID, const string& loginPass) {
+        ifstream inFile(FILE_PATH);
+        if (!inFile) return false;
+
+        string storedID, storedUsername, storedPass, storedPhone, storedEmail;
+        double storedBalance;
+        
+        while (inFile >> storedID >> storedUsername >> storedPass >> storedPhone >> storedEmail >> storedBalance) {
+            if (loginID == storedID && loginPass == storedPass) {
+                id = storedID;
+                username = storedUsername;
+                password = storedPass;
+                phoneNumber = storedPhone;
+                email = storedEmail;
+                balance = storedBalance;
+                inFile.close();
+                return true;
+            }
+        }
+        inFile.close();
+        return false;
+    }
+
+    bool registerAccount(const string& newID, const string& newUsername, const string& newPass, 
+                        const string& newPhone, const string& newEmail, double initialBalance) {
+        ofstream outFile(FILE_PATH, ios::app);
+        if (!outFile) return false;
+        
+        outFile << newID << " " << newUsername << " " << newPass << " " 
+                << newPhone << " " << newEmail << " " << fixed << setprecision(2) 
+                << initialBalance << endl;
+        outFile.close();
+        return true;
+    }
+};
+
+// ===================== GUI SCREENS =====================
+enum Screen { LOGIN, REGISTER, MENU, BROWSE };
+
+class GrabNobGUI {
 private:
-    RenderWindow window;
-    Font font;
+    sf::RenderWindow window;
+    sf::Font font;
+    Screen currentScreen;
+    Student currentStudent;
+    Menu menu;
     
-    // Text elements
-    Text titleText;
-    Text idLabel;
-    Text passwordLabel;
-    Text loginButton;
-    Text registerButton;
-    Text statusText;
+    // Login Screen
+    InputBox* loginIDBox;
+    InputBox* loginPassBox;
+    Button* loginButton;
+    Button* registerNavButton;
     
-    // Input boxes
-    RectangleShape idBox;
-    RectangleShape passwordBox;
-    RectangleShape loginBtn;
-    RectangleShape registerBtn;
+    // Register Screen
+    InputBox* regIDBox;
+    InputBox* regUsernameBox;
+    InputBox* regPassBox;
+    InputBox* regPhoneBox;
+    InputBox* regEmailBox;
+    InputBox* regBalanceBox;
+    Button* registerButton;
+    Button* backToLoginButton;
     
-    // Input strings
-    string idInput;
-    string passwordInput;
-    Text idInputText;
-    Text passwordInputText;
+    // Menu Screen
+    vector<Button*> menuButtons;
+    Button* logoutButton;
     
-    bool idBoxActive;
-    bool passwordBoxActive;
+    // Browse Screen
+    vector<Button*> categoryButtons;
+    vector<Button*> itemButtons;
+    Button* backToMenuButton;
+    int selectedCategory;
+    
+    sf::Text messageText;
+    sf::Clock messageClock;
+    string messageContent;
 
 public:
-    LoginWindow() : window(VideoMode(800, 600), "GrabNob - Login") {
-        // Load font (you'll need to provide a font file)
-        if (!font.loadFromFile("arial.ttf")) {
-            cout << "Error loading font! Using default.\n";
-            // SFML will use default font
-        }
+    GrabNobGUI() : window(sf::VideoMode({800, 600}), "GrabNob Bakery System"), 
+                   currentScreen(LOGIN), selectedCategory(-1), messageText(font) {
+        window.setFramerateLimit(60);
         
-        idBoxActive = false;
-        passwordBoxActive = false;
-        
-        setupUI();
-    }
-    
-    void setupUI() {
-        // Title
-        titleText.setFont(font);
-        titleText.setString("GrabNob");
-        titleText.setCharacterSize(80);
-        titleText.setFillColor(YELLOW);
-        titleText.setStyle(Text::Bold);
-        titleText.setPosition(250, 50);
-        
-        // ID Label
-        idLabel.setFont(font);
-        idLabel.setString("Student ID:");
-        idLabel.setCharacterSize(24);
-        idLabel.setFillColor(WHITE);
-        idLabel.setPosition(250, 180);
-        
-        // Password Label
-        passwordLabel.setFont(font);
-        passwordLabel.setString("Password:");
-        passwordLabel.setCharacterSize(24);
-        passwordLabel.setFillColor(WHITE);
-        passwordLabel.setPosition(250, 260);
-        
-        // ID Input Box
-        idBox.setSize(Vector2f(350, 40));
-        idBox.setPosition(250, 215);
-        idBox.setFillColor(Color(50, 50, 50));
-        idBox.setOutlineThickness(2);
-        idBox.setOutlineColor(PURPLE);
-        
-        // Password Input Box
-        passwordBox.setSize(Vector2f(350, 40));
-        passwordBox.setPosition(250, 295);
-        passwordBox.setFillColor(Color(50, 50, 50));
-        passwordBox.setOutlineThickness(2);
-        passwordBox.setOutlineColor(PURPLE);
-        
-        // Login Button
-        loginBtn.setSize(Vector2f(160, 50));
-        loginBtn.setPosition(250, 380);
-        loginBtn.setFillColor(LIGHT_GREEN);
-        
-        loginButton.setFont(font);
-        loginButton.setString("Login");
-        loginButton.setCharacterSize(24);
-        loginButton.setFillColor(Color::Black);
-        loginButton.setPosition(300, 390);
-        
-        // Register Button
-        registerBtn.setSize(Vector2f(160, 50));
-        registerBtn.setPosition(440, 380);
-        registerBtn.setFillColor(PURPLE);
-        
-        registerButton.setFont(font);
-        registerButton.setString("Register");
-        registerButton.setCharacterSize(24);
-        registerButton.setFillColor(Color::Black);
-        registerButton.setPosition(470, 390);
-        
-        // Input text displays
-        idInputText.setFont(font);
-        idInputText.setCharacterSize(20);
-        idInputText.setFillColor(WHITE);
-        idInputText.setPosition(250, 222);
-        
-        passwordInputText.setFont(font);
-        passwordInputText.setCharacterSize(20);
-        passwordInputText.setFillColor(WHITE);
-        passwordInputText.setPosition(250, 302);
-        
-        // Status text
-        statusText.setFont(font);
-        statusText.setCharacterSize(18);
-        statusText.setFillColor(YELLOW);
-        statusText.setPosition(250, 480);
-    }
-    
-    void handleEvent(Event& event) {
-        if (event.type == Event::MouseButtonPressed) {
-            Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
-            
-            // Check if ID box clicked
-            if (idBox.getGlobalBounds().contains(mousePos)) {
-                idBoxActive = true;
-                passwordBoxActive = false;
-                idBox.setOutlineColor(YELLOW);
-                passwordBox.setOutlineColor(PURPLE);
-            }
-            // Check if password box clicked
-            else if (passwordBox.getGlobalBounds().contains(mousePos)) {
-                passwordBoxActive = true;
-                idBoxActive = false;
-                passwordBox.setOutlineColor(YELLOW);
-                idBox.setOutlineColor(PURPLE);
-            }
-            // Check if login button clicked
-            else if (loginBtn.getGlobalBounds().contains(mousePos)) {
-                handleLogin();
-            }
-            // Check if register button clicked
-            else if (registerBtn.getGlobalBounds().contains(mousePos)) {
-                handleRegister();
-            }
-            else {
-                idBoxActive = false;
-                passwordBoxActive = false;
-                idBox.setOutlineColor(PURPLE);
-                passwordBox.setOutlineColor(PURPLE);
-            }
-        }
-        
-        if (event.type == Event::TextEntered) {
-            if (idBoxActive) {
-                if (event.text.unicode == 8 && !idInput.empty()) { // Backspace
-                    idInput.pop_back();
-                } else if (event.text.unicode < 128 && event.text.unicode != 8) {
-                    idInput += static_cast<char>(event.text.unicode);
+        if (!font.openFromFile("arial.ttf")) {
+            // Try alternative font paths
+            if (!font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
+                if (!font.openFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
+                    cout << "Error: Could not load font!" << endl;
                 }
-                idInputText.setString(idInput);
             }
-            
-            if (passwordBoxActive) {
-                if (event.text.unicode == 8 && !passwordInput.empty()) { // Backspace
-                    passwordInput.pop_back();
-                } else if (event.text.unicode < 128 && event.text.unicode != 8) {
-                    passwordInput += static_cast<char>(event.text.unicode);
+        }
+        
+        initLoginScreen();
+        initRegisterScreen();
+        initMenuScreen();
+        initBrowseScreen();
+        
+        messageText.setCharacterSize(16);
+        messageText.setFillColor(sf::Color::Red);
+        messageText.setPosition(sf::Vector2f(50, 550));
+    }
+
+    ~GrabNobGUI() {
+        delete loginIDBox;
+        delete loginPassBox;
+        delete loginButton;
+        delete registerNavButton;
+        
+        delete regIDBox;
+        delete regUsernameBox;
+        delete regPassBox;
+        delete regPhoneBox;
+        delete regEmailBox;
+        delete regBalanceBox;
+        delete registerButton;
+        delete backToLoginButton;
+        
+        for (auto btn : menuButtons) delete btn;
+        delete logoutButton;
+        
+        for (auto btn : categoryButtons) delete btn;
+        for (auto btn : itemButtons) delete btn;
+        delete backToMenuButton;
+    }
+
+    void initLoginScreen() {
+        loginIDBox = new InputBox(250, 200, 300, 40, "Student ID:", font);
+        loginPassBox = new InputBox(250, 280, 300, 40, "Password:", font, true);
+        loginButton = new Button(300, 360, 200, 50, "Login", font);
+        registerNavButton = new Button(300, 430, 200, 50, "Register", font);
+    }
+
+    void initRegisterScreen() {
+        regIDBox = new InputBox(250, 100, 300, 35, "Student ID:", font);
+        regUsernameBox = new InputBox(250, 160, 300, 35, "Username:", font);
+        regPassBox = new InputBox(250, 220, 300, 35, "Password:", font, true);
+        regPhoneBox = new InputBox(250, 280, 300, 35, "Phone (11 digits):", font);
+        regEmailBox = new InputBox(250, 340, 300, 35, "Email:", font);
+        regBalanceBox = new InputBox(250, 400, 300, 35, "Initial Balance:", font);
+        registerButton = new Button(250, 460, 140, 45, "Register", font);
+        backToLoginButton = new Button(410, 460, 140, 45, "Back", font);
+    }
+
+    void initMenuScreen() {
+        menuButtons.push_back(new Button(250, 200, 300, 60, "Browse Menu", font));
+        menuButtons.push_back(new Button(250, 280, 300, 60, "View Cart", font));
+        menuButtons.push_back(new Button(250, 360, 300, 60, "My Orders", font));
+        logoutButton = new Button(250, 440, 300, 60, "Logout", font);
+    }
+
+    void initBrowseScreen() {
+        for (size_t i = 0; i < 3; i++) {
+            categoryButtons.push_back(new Button(50, 100 + i * 80, 200, 60, 
+                menu.categoryNames[i], font));
+        }
+        backToMenuButton = new Button(50, 500, 200, 50, "Back to Menu", font);
+    }
+
+    void showMessage(const string& msg, sf::Color color = sf::Color::Red) {
+        messageContent = msg;
+        messageText.setString(msg);
+        messageText.setFillColor(color);
+        messageClock.restart();
+    }
+
+    void handleLoginScreen(sf::Event& event, sf::Vector2i mousePos) {
+        loginIDBox->handleInput(event);
+        loginPassBox->handleInput(event);
+        
+        if (event.is<sf::Event::MouseButtonPressed>()) {
+            loginIDBox->setActive(loginIDBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            loginPassBox->setActive(loginPassBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+        }
+        
+        if (loginButton->isPressed(event, mousePos)) {
+            if (currentStudent.login(loginIDBox->content, loginPassBox->content)) {
+                showMessage("Login successful! Welcome " + currentStudent.username, sf::Color::Green);
+                currentScreen = MENU;
+                loginIDBox->clear();
+                loginPassBox->clear();
+            } else {
+                showMessage("Invalid ID or password!");
+            }
+        }
+        
+        if (registerNavButton->isPressed(event, mousePos)) {
+            currentScreen = REGISTER;
+            showMessage("");
+        }
+    }
+
+    void handleRegisterScreen(sf::Event& event, sf::Vector2i mousePos) {
+        regIDBox->handleInput(event);
+        regUsernameBox->handleInput(event);
+        regPassBox->handleInput(event);
+        regPhoneBox->handleInput(event);
+        regEmailBox->handleInput(event);
+        regBalanceBox->handleInput(event);
+        
+        if (event.is<sf::Event::MouseButtonPressed>()) {
+            regIDBox->setActive(regIDBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            regUsernameBox->setActive(regUsernameBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            regPassBox->setActive(regPassBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            regPhoneBox->setActive(regPhoneBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            regEmailBox->setActive(regEmailBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+            regBalanceBox->setActive(regBalanceBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+        }
+        
+        if (registerButton->isPressed(event, mousePos)) {
+            try {
+                double balance = stod(regBalanceBox->content);
+                if (currentStudent.registerAccount(regIDBox->content, regUsernameBox->content,
+                    regPassBox->content, regPhoneBox->content, regEmailBox->content, balance)) {
+                    showMessage("Registration successful! Please login.", sf::Color::Green);
+                    currentScreen = LOGIN;
+                    regIDBox->clear();
+                    regUsernameBox->clear();
+                    regPassBox->clear();
+                    regPhoneBox->clear();
+                    regEmailBox->clear();
+                    regBalanceBox->clear();
+                } else {
+                    showMessage("Registration failed!");
                 }
-                // Display asterisks for password
-                string maskedPassword(passwordInput.length(), '*');
-                passwordInputText.setString(maskedPassword);
+            } catch (...) {
+                showMessage("Invalid balance amount!");
             }
         }
-    }
-    
-    void handleLogin() {
-        if (idInput.empty() || passwordInput.empty()) {
-            statusText.setString("Please fill in all fields!");
-            statusText.setFillColor(Color::Red);
-        } else {
-            statusText.setString("Login clicked! ID: " + idInput);
-            statusText.setFillColor(LIGHT_GREEN);
-            // Here you would integrate with your existing login logic
-            cout << "Login attempt - ID: " << idInput << endl;
+        
+        if (backToLoginButton->isPressed(event, mousePos)) {
+            currentScreen = LOGIN;
+            showMessage("");
         }
     }
-    
-    void handleRegister() {
-        statusText.setString("Register clicked! Opening registration...");
-        statusText.setFillColor(LIGHT_GREEN);
-        // Here you would integrate with your existing registration logic
-        cout << "Register clicked" << endl;
+
+    void handleMenuScreen(sf::Event& event, sf::Vector2i mousePos) {
+        if (menuButtons[0]->isPressed(event, mousePos)) {
+            currentScreen = BROWSE;
+            selectedCategory = -1;
+            itemButtons.clear();
+        }
+        
+        if (menuButtons[1]->isPressed(event, mousePos)) {
+            showMessage("Cart feature coming soon!", sf::Color::Blue);
+        }
+        
+        if (menuButtons[2]->isPressed(event, mousePos)) {
+            showMessage("Orders feature coming soon!", sf::Color::Blue);
+        }
+        
+        if (logoutButton->isPressed(event, mousePos)) {
+            currentScreen = LOGIN;
+            showMessage("Logged out successfully.", sf::Color::Green);
+        }
     }
-    
+
+    void handleBrowseScreen(sf::Event& event, sf::Vector2i mousePos) {
+        for (size_t i = 0; i < categoryButtons.size(); i++) {
+            if (categoryButtons[i]->isPressed(event, mousePos)) {
+                selectedCategory = i;
+                
+                // Create item buttons
+                itemButtons.clear();
+                for (size_t j = 0; j < menu.categories[i].size(); j++) {
+                    stringstream ss;
+                    ss << menu.categories[i][j].name << " - Rs." << menu.categories[i][j].price;
+                    itemButtons.push_back(new Button(300, 100 + j * 70, 450, 55, ss.str(), font));
+                }
+            }
+        }
+        
+        for (size_t i = 0; i < itemButtons.size(); i++) {
+            if (itemButtons[i]->isPressed(event, mousePos)) {
+                showMessage("Added " + menu.categories[selectedCategory][i].name + " to cart!", sf::Color::Green);
+            }
+        }
+        
+        if (backToMenuButton->isPressed(event, mousePos)) {
+            currentScreen = MENU;
+            selectedCategory = -1;
+            itemButtons.clear();
+        }
+    }
+
+    void drawLoginScreen() {
+        sf::Text title(font, "GrabNob Bakery System", 40);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(sf::Vector2f(150, 80));
+        window.draw(title);
+        
+        loginIDBox->draw(window);
+        loginPassBox->draw(window);
+        loginButton->draw(window);
+        registerNavButton->draw(window);
+    }
+
+    void drawRegisterScreen() {
+        sf::Text title(font, "Register New Account", 35);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(sf::Vector2f(200, 30));
+        window.draw(title);
+        
+        regIDBox->draw(window);
+        regUsernameBox->draw(window);
+        regPassBox->draw(window);
+        regPhoneBox->draw(window);
+        regEmailBox->draw(window);
+        regBalanceBox->draw(window);
+        registerButton->draw(window);
+        backToLoginButton->draw(window);
+    }
+
+    void drawMenuScreen() {
+        sf::Text title(font, "Main Menu", 40);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(sf::Vector2f(300, 80));
+        window.draw(title);
+        
+        sf::Text balanceText(font, "Balance: Rs." + to_string((int)currentStudent.balance), 20);
+        balanceText.setFillColor(sf::Color::Green);
+        balanceText.setPosition(sf::Vector2f(300, 140));
+        window.draw(balanceText);
+        
+        for (auto btn : menuButtons) {
+            btn->draw(window);
+        }
+        logoutButton->draw(window);
+    }
+
+    void drawBrowseScreen() {
+        sf::Text title(font, "Browse Menu", 35);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(sf::Vector2f(280, 30));
+        window.draw(title);
+        
+        for (auto btn : categoryButtons) {
+            btn->draw(window);
+        }
+        
+        if (selectedCategory >= 0) {
+            for (auto btn : itemButtons) {
+                btn->draw(window);
+            }
+        }
+        
+        backToMenuButton->draw(window);
+    }
+
     void run() {
         while (window.isOpen()) {
-            Event event;
-            while (window.pollEvent(event)) {
-                if (event.type == Event::Closed)
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            
+            while (auto event = window.pollEvent()) {
+                if (event->is<sf::Event::Closed>()) {
                     window.close();
+                }
                 
-                handleEvent(event);
+                switch (currentScreen) {
+                    case LOGIN:
+                        handleLoginScreen(*event, mousePos);
+                        break;
+                    case REGISTER:
+                        handleRegisterScreen(*event, mousePos);
+                        break;
+                    case MENU:
+                        handleMenuScreen(*event, mousePos);
+                        break;
+                    case BROWSE:
+                        handleBrowseScreen(*event, mousePos);
+                        break;
+                }
             }
             
-            // Clear window with dark background
-            window.clear(Color(HOBNOB));
+            // Update buttons
+            switch (currentScreen) {
+                case LOGIN:
+                    loginButton->update(mousePos);
+                    registerNavButton->update(mousePos);
+                    loginIDBox->update();
+                    loginPassBox->update();
+                    break;
+                case REGISTER:
+                    registerButton->update(mousePos);
+                    backToLoginButton->update(mousePos);
+                    regIDBox->update();
+                    regUsernameBox->update();
+                    regPassBox->update();
+                    regPhoneBox->update();
+                    regEmailBox->update();
+                    regBalanceBox->update();
+                    break;
+                case MENU:
+                    for (auto btn : menuButtons) btn->update(mousePos);
+                    logoutButton->update(mousePos);
+                    break;
+                case BROWSE:
+                    for (auto btn : categoryButtons) btn->update(mousePos);
+                    for (auto btn : itemButtons) btn->update(mousePos);
+                    backToMenuButton->update(mousePos);
+                    break;
+            }
             
-            // Draw all elements
-            window.draw(titleText);
-            window.draw(idLabel);
-            window.draw(passwordLabel);
-            window.draw(idBox);
-            window.draw(passwordBox);
-            window.draw(loginBtn);
-            window.draw(registerBtn);
-            window.draw(loginButton);
-            window.draw(registerButton);
-            window.draw(idInputText);
-            window.draw(passwordInputText);
-            window.draw(statusText);
+            // Clear and draw
+            window.clear(sf::Color(30, 30, 50));
+            
+            switch (currentScreen) {
+                case LOGIN:
+                    drawLoginScreen();
+                    break;
+                case REGISTER:
+                    drawRegisterScreen();
+                    break;
+                case MENU:
+                    drawMenuScreen();
+                    break;
+                case BROWSE:
+                    drawBrowseScreen();
+                    break;
+            }
+            
+            // Draw message if active
+            if (messageClock.getElapsedTime().asSeconds() < 3.0f) {
+                window.draw(messageText);
+            }
             
             window.display();
         }
@@ -240,7 +664,7 @@ public:
 };
 
 int main() {
-    LoginWindow loginWindow;
-    loginWindow.run();
+    GrabNobGUI app;
+    app.run();
     return 0;
 }
