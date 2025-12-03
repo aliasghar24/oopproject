@@ -1,4 +1,3 @@
-// ----------------------------------------------------CODE 3----------------------------------
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <fstream>
@@ -167,7 +166,7 @@ public:
             protein = "Egg"; proteinKey = "Protein_Egg"; price += 70; 
             chosenIngredientKeys.push_back(proteinKey);
         }
-        else { 
+        else if (proteinChoice == 4) { 
             protein = "None"; proteinKey = ""; 
         }
 
@@ -188,7 +187,7 @@ public:
             veggies = "Onions"; vegKey = "Veg_Onions"; price += 20; 
             chosenIngredientKeys.push_back(vegKey);
         }
-        else { 
+        else if (vegChoice == 5) { 
             veggies = "None"; vegKey = ""; 
         }
 
@@ -205,7 +204,7 @@ public:
             sauce = "Chipotle"; sauceKey = "Sauce_Chipotle"; price += 20; 
             chosenIngredientKeys.push_back(sauceKey);
         }
-        else { 
+        else if (sauceChoice == 4) { 
             sauce = "None"; sauceKey = ""; 
         }
 
@@ -214,7 +213,7 @@ public:
             extras = "Cheese"; extraKey = "Extra_Cheese"; price += 50; 
             chosenIngredientKeys.push_back(extraKey);
         }
-        else { 
+        else if (extraChoice == 2) { 
             extras = "None"; extraKey = ""; 
         }
 
@@ -734,39 +733,6 @@ public:
         return completed;
     }
 
-    // ========== NEW METHODS ADDED ==========
-    vector<Order> getOrdersForUser(const string& username) {
-        vector<Order> userOrders;
-        for (auto &order : orders) {
-            if (order.username == username) {
-                userOrders.push_back(order);
-            }
-        }
-        return userOrders;
-    }
-
-    vector<Order> getOngoingOrdersForUser(const string& username) {
-        vector<Order> ongoing;
-        for (auto &order : orders) {
-            order.updateStatus();
-            if (order.getTimeRemaining() > 0 && order.username == username) {
-                ongoing.push_back(order);
-            }
-        }
-        return ongoing;
-    }
-
-    vector<Order> getCompletedOrdersForUser(const string& username) {
-        vector<Order> completed;
-        for (auto &order : orders) {
-            order.updateStatus();
-            if (order.getTimeRemaining() <= 0 && order.username == username) {
-                completed.push_back(order);
-            }
-        }
-        return completed;
-    }
-
     Order* findOrderByID(const string& ordID) {
         for (auto& order : orders) {
             if (order.orderID == ordID) {
@@ -776,6 +742,7 @@ public:
         return nullptr;
     }
 };
+
 class Menu {
 public:
     vector<vector<Item>> categories;
@@ -1073,7 +1040,6 @@ private:
     InputBox* quantityInputBox;
     vector<string> customStepLabels;
     
-    
     // Recharge Screen
     InputBox* rechargeAmountBox;
     Button* rechargeConfirmButton;
@@ -1252,29 +1218,12 @@ public:
         backToCartButton = new Button(300, 580, 300, 50, "Back to Cart", font);
     }
 
-//  MAAZ CHANGED THIS PIECE OF CODE
     void initOrdersScreen() {
-        // Button dimensions - slightly smaller to fit better
-        float buttonWidth = 160;  // Reduced width
-        float buttonHeight = 45;  // Slightly shorter
-        float buttonSpacing = 8;  // Reduced spacing
-        float yPosition = 620;    // A bit higher from bottom
-        
-        // Calculate starting x position
-        float totalWidth = (buttonWidth * 5) + (buttonSpacing * 4);
-        float startX = (900 - totalWidth) / 2;
-        
-        // Create buttons
-        viewAllOrdersButton = new Button(startX, yPosition, buttonWidth, buttonHeight, "All", font);
-        viewOngoingOrdersButton = new Button(startX + buttonWidth + buttonSpacing, yPosition, 
-                                            buttonWidth, buttonHeight, "Ongoing", font);
-        viewCompletedOrdersButton = new Button(startX + (buttonWidth * 2) + (buttonSpacing * 2), yPosition,
-                                            buttonWidth, buttonHeight, "Completed", font);
-        trackOrderButton = new Button(startX + (buttonWidth * 3) + (buttonSpacing * 3), yPosition,
-                                    buttonWidth, buttonHeight, "Track", font);
-        backToMenuFromOrders = new Button(startX + (buttonWidth * 4) + (buttonSpacing * 4), yPosition,
-                                        buttonWidth, buttonHeight, "Back", font);
-        
+        viewAllOrdersButton = new Button(50, 100, 200, 50, "All Orders", font);
+        viewOngoingOrdersButton = new Button(50, 170, 200, 50, "Ongoing Orders", font);
+        viewCompletedOrdersButton = new Button(50, 240, 200, 50, "Completed Orders", font);
+        trackOrderButton = new Button(50, 310, 200, 50, "Track Order", font);
+        backToMenuFromOrders = new Button(50, 600, 200, 50, "Back to Menu", font);
         trackOrderIDBox = new InputBox(300, 150, 300, 40, "Enter Order ID:", font);
     }
 
@@ -1677,141 +1626,141 @@ public:
     }
 
     void handleCustomSandwichScreen(sf::Event& event, sf::Vector2i mousePos) {
-    quantityInputBox->handleInput(event);
-    
-    if (event.type == sf::Event::MouseButtonPressed) {
-        if (event.mouseButton.button == sf::Mouse::Left) {
-            quantityInputBox->setActive(quantityInputBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
-        }
-    }
-    
-    // Handle custom sandwich steps
-    if (customSandwichStep == 0) { // Bread selection
-        for (size_t i = 0; i < customSandwichButtonsStep1.size(); i++) {
-            if (customSandwichButtonsStep1[i]->isPressed(event, mousePos)) {
-                breadChoice = i + 1;
-                showMessage("Selected " + string(i == 0 ? "White" : i == 1 ? "Brown" : "Multigrain") + " bread", sf::Color::Blue);
-                customSandwichStep++;
-                break;
+        quantityInputBox->handleInput(event);
+        
+        if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                quantityInputBox->setActive(quantityInputBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
             }
         }
-    }
-    else if (customSandwichStep == 1) { // Protein selection
-        for (size_t i = 0; i < customSandwichButtonsStep2.size(); i++) {
-            if (customSandwichButtonsStep2[i]->isPressed(event, mousePos)) {
-                proteinChoice = i + 1;
-                showMessage("Selected " + string(i == 0 ? "Chicken" : i == 1 ? "Beef" : i == 2 ? "Egg" : "No protein"), sf::Color::Blue);
-                customSandwichStep++;
-                break;
-            }
-        }
-    }
-    else if (customSandwichStep == 2) { // Veggies selection
-        for (size_t i = 0; i < customSandwichButtonsStep3.size(); i++) {
-            if (customSandwichButtonsStep3[i]->isPressed(event, mousePos)) {
-                vegChoice = i + 1;
-                showMessage("Selected " + string(i == 0 ? "Lettuce" : i == 1 ? "Cucumber" : i == 2 ? "Olives" : i == 3 ? "Onions" : "No veggies"), sf::Color::Blue);
-                customSandwichStep++;
-                break;
-            }
-        }
-    }
-    else if (customSandwichStep == 3) { // Sauce selection
-        for (size_t i = 0; i < customSandwichButtonsStep4.size(); i++) {
-            if (customSandwichButtonsStep4[i]->isPressed(event, mousePos)) {
-                sauceChoice = i + 1;
-                showMessage("Selected " + string(i == 0 ? "Mayo" : i == 1 ? "Garlic" : i == 2 ? "Chipotle" : "No sauce"), sf::Color::Blue);
-                customSandwichStep++;
-                break;
-            }
-        }
-    }
-    else if (customSandwichStep == 4) { // Extras selection
-        for (size_t i = 0; i < customSandwichButtonsStep5.size(); i++) {
-            if (customSandwichButtonsStep5[i]->isPressed(event, mousePos)) {
-                extraChoice = i + 1;
-                showMessage("Selected " + string(i == 0 ? "Cheese" : "No extras"), sf::Color::Blue);
-                customSandwichStep++;
-                break;
-            }
-        }
-    }
-    else if (customSandwichStep == 5) { // Quantity selection
-        if (finishCustomButton->isPressed(event, mousePos)) {
-            try {
-                customQuantity = stoi(quantityInputBox->content);
-                if (customQuantity <= 0) {
-                    showMessage("Quantity must be positive!");
-                    return;
+        
+        // Handle custom sandwich steps
+        if (customSandwichStep == 0) { // Bread selection
+            for (size_t i = 0; i < customSandwichButtonsStep1.size(); i++) {
+                if (customSandwichButtonsStep1[i]->isPressed(event, mousePos)) {
+                    breadChoice = i + 1;
+                    showMessage("Selected " + string(i == 0 ? "White" : i == 1 ? "Brown" : "Multigrain") + " bread", sf::Color::Blue);
+                    customSandwichStep++;
+                    break;
                 }
-                
-                // Build the sandwich
-                currentCustomSandwich.buildSandwichGUI(breadChoice, proteinChoice, 
-                                                      vegChoice, sauceChoice, extraChoice);
-                
-                // Check ingredient availability
-                if (!ingredientInventory.hasEnoughAll(currentCustomSandwich.getChosenIngredients(), customQuantity)) {
-                    showMessage("Not enough ingredients available!", sf::Color::Red);
-                    return;
-                }
-                
-                // Consume ingredients
-                ingredientInventory.consumeAll(currentCustomSandwich.getChosenIngredients(), customQuantity);
-                
-                // Add to cart
-                currentStudent.addToCart(
-                    currentCustomSandwich.getName(),
-                    currentCustomSandwich.getPrice(),
-                    customQuantity,
-                    true,
-                    currentCustomSandwich.getIngredientUsage(customQuantity)
-                );
-                
-                showMessage("Custom sandwich added to cart!", sf::Color::Green);
-                currentScreen = BROWSE;
-                selectedCategory = 0; // Savoury category
-            } catch (...) {
-                showMessage("Invalid quantity!");
             }
         }
+        else if (customSandwichStep == 1) { // Protein selection
+            for (size_t i = 0; i < customSandwichButtonsStep2.size(); i++) {
+                if (customSandwichButtonsStep2[i]->isPressed(event, mousePos)) {
+                    proteinChoice = i + 1;
+                    showMessage("Selected " + string(i == 0 ? "Chicken" : i == 1 ? "Beef" : i == 2 ? "Egg" : "No protein"), sf::Color::Blue);
+                    customSandwichStep++;
+                    break;
+                }
+            }
+        }
+        else if (customSandwichStep == 2) { // Veggies selection
+            for (size_t i = 0; i < customSandwichButtonsStep3.size(); i++) {
+                if (customSandwichButtonsStep3[i]->isPressed(event, mousePos)) {
+                    vegChoice = i + 1;
+                    showMessage("Selected " + string(i == 0 ? "Lettuce" : i == 1 ? "Cucumber" : i == 2 ? "Olives" : i == 3 ? "Onions" : "No veggies"), sf::Color::Blue);
+                    customSandwichStep++;
+                    break;
+                }
+            }
+        }
+        else if (customSandwichStep == 3) { // Sauce selection
+            for (size_t i = 0; i < customSandwichButtonsStep4.size(); i++) {
+                if (customSandwichButtonsStep4[i]->isPressed(event, mousePos)) {
+                    sauceChoice = i + 1;
+                    showMessage("Selected " + string(i == 0 ? "Mayo" : i == 1 ? "Garlic" : i == 2 ? "Chipotle" : "No sauce"), sf::Color::Blue);
+                    customSandwichStep++;
+                    break;
+                }
+            }
+        }
+        else if (customSandwichStep == 4) { // Extras selection
+            for (size_t i = 0; i < customSandwichButtonsStep5.size(); i++) {
+                if (customSandwichButtonsStep5[i]->isPressed(event, mousePos)) {
+                    extraChoice = i + 1;
+                    showMessage("Selected " + string(i == 0 ? "Cheese" : "No extras"), sf::Color::Blue);
+                    customSandwichStep++;
+                    break;
+                }
+            }
+        }
+        else if (customSandwichStep == 5) { // Quantity selection
+            if (finishCustomButton->isPressed(event, mousePos)) {
+                try {
+                    customQuantity = stoi(quantityInputBox->content);
+                    if (customQuantity <= 0) {
+                        showMessage("Quantity must be positive!");
+                        return;
+                    }
+                    
+                    // Build the sandwich
+                    currentCustomSandwich.buildSandwichGUI(breadChoice, proteinChoice, 
+                                                          vegChoice, sauceChoice, extraChoice);
+                    
+                    // Check ingredient availability
+                    if (!ingredientInventory.hasEnoughAll(currentCustomSandwich.getChosenIngredients(), customQuantity)) {
+                        showMessage("Not enough ingredients available!", sf::Color::Red);
+                        return;
+                    }
+                    
+                    // Consume ingredients
+                    ingredientInventory.consumeAll(currentCustomSandwich.getChosenIngredients(), customQuantity);
+                    
+                    // Add to cart
+                    currentStudent.addToCart(
+                        currentCustomSandwich.getName(),
+                        currentCustomSandwich.getPrice(),
+                        customQuantity,
+                        true,
+                        currentCustomSandwich.getIngredientUsage(customQuantity)
+                    );
+                    
+                    showMessage("Custom sandwich added to cart!", sf::Color::Green);
+                    currentScreen = BROWSE;
+                    selectedCategory = 0; // Savoury category
+                } catch (...) {
+                    showMessage("Invalid quantity!");
+                }
+            }
+        }
+        
+        if (prevStepButton->isPressed(event, mousePos) && customSandwichStep > 0) {
+            customSandwichStep--;
+            showMessage("Going back to previous step", sf::Color::Yellow);
+        }
+        
+        if (nextStepButton->isPressed(event, mousePos) && customSandwichStep < 5) {
+            // Validate current step before proceeding
+            if (customSandwichStep == 0 && breadChoice == 0) {
+                showMessage("Please select a bread type!", sf::Color::Red);
+                return;
+            }
+            if (customSandwichStep == 1 && proteinChoice == 0) {
+                showMessage("Please select a protein option!", sf::Color::Red);
+                return;
+            }
+            if (customSandwichStep == 2 && vegChoice == 0) {
+                showMessage("Please select a veggies option!", sf::Color::Red);
+                return;
+            }
+            if (customSandwichStep == 3 && sauceChoice == 0) {
+                showMessage("Please select a sauce option!", sf::Color::Red);
+                return;
+            }
+            if (customSandwichStep == 4 && extraChoice == 0) {
+                showMessage("Please select an extras option!", sf::Color::Red);
+                return;
+            }
+            customSandwichStep++;
+        }
+        
+        if (cancelCustomButton->isPressed(event, mousePos)) {
+            currentScreen = BROWSE;
+            selectedCategory = 0;
+            showMessage("Custom sandwich cancelled", sf::Color::Yellow);
+        }
     }
-    
-    if (prevStepButton->isPressed(event, mousePos) && customSandwichStep > 0) {
-        customSandwichStep--;
-        showMessage("Going back to previous step", sf::Color::Yellow);
-    }
-    
-    if (nextStepButton->isPressed(event, mousePos) && customSandwichStep < 5) {
-        // Validate current step before proceeding
-        if (customSandwichStep == 0 && breadChoice == 0) {
-            showMessage("Please select a bread type!", sf::Color::Red);
-            return;
-        }
-        if (customSandwichStep == 1 && proteinChoice == 0) {
-            showMessage("Please select a protein option!", sf::Color::Red);
-            return;
-        }
-        if (customSandwichStep == 2 && vegChoice == 0) {
-            showMessage("Please select a veggies option!", sf::Color::Red);
-            return;
-        }
-        if (customSandwichStep == 3 && sauceChoice == 0) {
-            showMessage("Please select a sauce option!", sf::Color::Red);
-            return;
-        }
-        if (customSandwichStep == 4 && extraChoice == 0) {
-            showMessage("Please select an extras option!", sf::Color::Red);
-            return;
-        }
-        customSandwichStep++;
-    }
-    
-    if (cancelCustomButton->isPressed(event, mousePos)) {
-        currentScreen = BROWSE;
-        selectedCategory = 0;
-        showMessage("Custom sandwich cancelled", sf::Color::Yellow);
-    }
-}
 
     void handleRechargeScreen(sf::Event& event, sf::Vector2i mousePos) {
         rechargeAmountBox->handleInput(event);
@@ -1983,96 +1932,70 @@ public:
         backToCartButton->draw(window);
     }
 
-        void drawOrdersScreen() {
+    void drawOrdersScreen() {
         sf::Text title("My Orders", font, 35);
         title.setFillColor(sf::Color::White);
         title.setPosition(350, 30);
         window.draw(title);
 
+        vector<Order>& orders = currentStudent.orderHistory.getAllOrders();
+        
         if (showAllOrders) {
-            sf::Text filterText("Showing: My Orders", font, 20); // Changed from "All Orders"
+            sf::Text filterText("Showing: All Orders", font, 20);
             filterText.setFillColor(sf::Color::Cyan);
             filterText.setPosition(300, 100);
             window.draw(filterText);
             
-            // Get ONLY current user's orders
-            vector<Order> userOrders = currentStudent.orderHistory.getOrdersForUser(currentStudent.username);
-            
-            if (userOrders.empty()) {
-                sf::Text noOrdersText("No orders found!", font, 24);
-                noOrdersText.setFillColor(sf::Color::White);
-                noOrdersText.setPosition(350, 300);
-                window.draw(noOrdersText);
-            } else {
-                int yPos = 150;
-                for (size_t i = ordersScrollOffset; i < userOrders.size() && i < ordersScrollOffset + 8; i++) {
-                    userOrders[i].updateStatus();
-                    
-                    sf::Text orderText(userOrders[i].getDisplayString(), font, 16);
-                    orderText.setFillColor(userOrders[i].getTimeRemaining() > 0 ? sf::Color::Yellow : sf::Color::White);
-                    orderText.setPosition(50, yPos);
-                    window.draw(orderText);
-                    
-                    yPos += 60;
-                }
+            int yPos = 150;
+            for (size_t i = ordersScrollOffset; i < orders.size() && i < ordersScrollOffset + 8; i++) {
+                orders[i].updateStatus();
+                
+                sf::Text orderText(orders[i].getDisplayString(), font, 16);
+                orderText.setFillColor(orders[i].getTimeRemaining() > 0 ? sf::Color::Yellow : sf::Color::White);
+                orderText.setPosition(50, yPos);
+                window.draw(orderText);
+                
+                yPos += 60;
             }
         }
         else if (showOngoingOrders) {
-            sf::Text filterText("Showing: My Ongoing Orders", font, 20);
+            sf::Text filterText("Showing: Ongoing Orders", font, 20);
             filterText.setFillColor(sf::Color::Cyan);
             filterText.setPosition(300, 100);
             window.draw(filterText);
             
-            // Get ONLY current user's ongoing orders
-            vector<Order> ongoing = currentStudent.orderHistory.getOngoingOrdersForUser(currentStudent.username);
-            
-            if (ongoing.empty()) {
-                sf::Text noOrdersText("No ongoing orders!", font, 24);
-                noOrdersText.setFillColor(sf::Color::White);
-                noOrdersText.setPosition(350, 300);
-                window.draw(noOrdersText);
-            } else {
-                int yPos = 150;
-                for (size_t i = 0; i < ongoing.size() && i < 8; i++) {
-                    sf::Text orderText(ongoing[i].getDisplayString(), font, 16);
-                    orderText.setFillColor(sf::Color::Yellow);
-                    orderText.setPosition(50, yPos);
-                    window.draw(orderText);
-                    
-                    // Draw timer
-                    sf::Text timerText("Time: " + ongoing[i].getTimeRemainingString(), font, 14);
-                    timerText.setFillColor(sf::Color::Red);
-                    timerText.setPosition(650, yPos);
-                    window.draw(timerText);
-                    
-                    yPos += 60;
-                }
+            vector<Order> ongoing = currentStudent.orderHistory.getOngoingOrders();
+            int yPos = 150;
+            for (size_t i = 0; i < ongoing.size() && i < 8; i++) {
+                sf::Text orderText(ongoing[i].getDisplayString(), font, 16);
+                orderText.setFillColor(sf::Color::Yellow);
+                orderText.setPosition(50, yPos);
+                window.draw(orderText);
+                
+                // Draw timer
+                sf::Text timerText("Time: " + ongoing[i].getTimeRemainingString(), font, 14);
+                timerText.setFillColor(sf::Color::Red);
+                timerText.setPosition(650, yPos);
+                window.draw(timerText);
+                
+                yPos += 60;
             }
         }
         else if (showCompletedOrders) {
-            sf::Text filterText("Showing: My Completed Orders", font, 20);
+            sf::Text filterText("Showing: Completed Orders", font, 20);
             filterText.setFillColor(sf::Color::Cyan);
             filterText.setPosition(300, 100);
             window.draw(filterText);
             
-            // Get ONLY current user's completed orders
-            vector<Order> completed = currentStudent.orderHistory.getCompletedOrdersForUser(currentStudent.username);
-            
-            if (completed.empty()) {
-                sf::Text noOrdersText("No completed orders!", font, 24);
-                noOrdersText.setFillColor(sf::Color::White);
-                noOrdersText.setPosition(350, 300);
-                window.draw(noOrdersText);
-            } else {
-                int yPos = 150;
-                for (size_t i = 0; i < completed.size() && i < 8; i++) {
-                    sf::Text orderText(completed[i].getDisplayString(), font, 16);
-                    orderText.setFillColor(sf::Color::White);
-                    orderText.setPosition(50, yPos);
-                    window.draw(orderText);
-                    
-                    yPos += 60;
-                }
+            vector<Order> completed = currentStudent.orderHistory.getCompletedOrders();
+            int yPos = 150;
+            for (size_t i = 0; i < completed.size() && i < 8; i++) {
+                sf::Text orderText(completed[i].getDisplayString(), font, 16);
+                orderText.setFillColor(sf::Color::White);
+                orderText.setPosition(50, yPos);
+                window.draw(orderText);
+                
+                yPos += 60;
             }
         }
         else if (showTrackOrder) {
@@ -2086,27 +2009,19 @@ public:
             if (!trackOrderIDBox->content.empty()) {
                 Order* order = currentStudent.orderHistory.findOrderByID(trackOrderIDBox->content);
                 if (order) {
-                    // Check if this order belongs to the current user
-                    if (order->username != currentStudent.username) {
-                        sf::Text accessText("Access denied. This is not your order!", font, 20);
-                        accessText.setFillColor(sf::Color::Red);
-                        accessText.setPosition(50, 250);
-                        window.draw(accessText);
-                    } else {
-                        order->updateStatus();
-                        
-                        sf::Text orderDetails(order->getDetailedString(), font, 14);
-                        orderDetails.setFillColor(sf::Color::White);
-                        orderDetails.setPosition(50, 250);
-                        window.draw(orderDetails);
-                        
-                        // Draw timer for ongoing orders
-                        if (order->getTimeRemaining() > 0) {
-                            sf::Text timerText("Time Remaining: " + order->getTimeRemainingString(), font, 18);
-                            timerText.setFillColor(sf::Color::Red);
-                            timerText.setPosition(50, 500);
-                            window.draw(timerText);
-                        }
+                    order->updateStatus();
+                    
+                    sf::Text orderDetails(order->getDetailedString(), font, 14);
+                    orderDetails.setFillColor(sf::Color::White);
+                    orderDetails.setPosition(50, 250);
+                    window.draw(orderDetails);
+                    
+                    // Draw timer for ongoing orders
+                    if (order->getTimeRemaining() > 0) {
+                        sf::Text timerText("Time Remaining: " + order->getTimeRemainingString(), font, 18);
+                        timerText.setFillColor(sf::Color::Red);
+                        timerText.setPosition(50, 500);
+                        window.draw(timerText);
                     }
                 } else {
                     sf::Text notFoundText("Order not found!", font, 20);
@@ -2125,77 +2040,77 @@ public:
     }
 
     void drawCustomSandwichScreen() {
-    sf::Text title("Build Your Custom Sandwich", font, 35);
-    title.setFillColor(sf::Color::White);
-    title.setPosition(250, 30);
-    window.draw(title);
-    
-    // Draw current step
-    if (customSandwichStep < customStepLabels.size()) {
-        sf::Text stepText(customStepLabels[customSandwichStep], font, 24);
-        stepText.setFillColor(sf::Color::Yellow);
-        stepText.setPosition(300, 100);
-        window.draw(stepText);
-    }
-    
-    // Draw buttons for current step
-    if (customSandwichStep == 0) { // Bread selection
-        for (auto btn : customSandwichButtonsStep1) {
-            btn->draw(window);
-        }
-    }
-    else if (customSandwichStep == 1) { // Protein selection
-        for (auto btn : customSandwichButtonsStep2) {
-            btn->draw(window);
-        }
-    }
-    else if (customSandwichStep == 2) { // Veggies selection
-        for (auto btn : customSandwichButtonsStep3) {
-            btn->draw(window);
-        }
-    }
-    else if (customSandwichStep == 3) { // Sauce selection
-        for (auto btn : customSandwichButtonsStep4) {
-            btn->draw(window);
-        }
-    }
-    else if (customSandwichStep == 4) { // Extras selection
-        for (auto btn : customSandwichButtonsStep5) {
-            btn->draw(window);
-        }
-    }
-    else if (customSandwichStep == 5) { // Quantity selection
-        quantityInputBox->draw(window);
-        finishCustomButton->draw(window);
+        sf::Text title("Build Your Custom Sandwich", font, 35);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(250, 30);
+        window.draw(title);
         
-        // Draw sandwich summary
-        if (breadChoice > 0) {
-            currentCustomSandwich.buildSandwichGUI(breadChoice, proteinChoice, vegChoice, sauceChoice, extraChoice);
-            
-            sf::Text summaryText(currentCustomSandwich.getSummary(), font, 16);
-            summaryText.setFillColor(sf::Color::White);
-            summaryText.setPosition(50, 200);
-            window.draw(summaryText);
-            
-            // Draw ingredient stock
-            sf::Text stockText(ingredientInventory.getStockDisplayText(), font, 14);
-            stockText.setFillColor(sf::Color::Green);
-            stockText.setPosition(50, 400);
-            window.draw(stockText);
+        // Draw current step
+        if (customSandwichStep < customStepLabels.size()) {
+            sf::Text stepText(customStepLabels[customSandwichStep], font, 24);
+            stepText.setFillColor(sf::Color::Yellow);
+            stepText.setPosition(300, 100);
+            window.draw(stepText);
         }
+        
+        // Draw buttons for current step
+        if (customSandwichStep == 0) { // Bread selection
+            for (auto btn : customSandwichButtonsStep1) {
+                btn->draw(window);
+            }
+        }
+        else if (customSandwichStep == 1) { // Protein selection
+            for (auto btn : customSandwichButtonsStep2) {
+                btn->draw(window);
+            }
+        }
+        else if (customSandwichStep == 2) { // Veggies selection
+            for (auto btn : customSandwichButtonsStep3) {
+                btn->draw(window);
+            }
+        }
+        else if (customSandwichStep == 3) { // Sauce selection
+            for (auto btn : customSandwichButtonsStep4) {
+                btn->draw(window);
+            }
+        }
+        else if (customSandwichStep == 4) { // Extras selection
+            for (auto btn : customSandwichButtonsStep5) {
+                btn->draw(window);
+            }
+        }
+        else if (customSandwichStep == 5) { // Quantity selection
+            quantityInputBox->draw(window);
+            finishCustomButton->draw(window);
+            
+            // Draw sandwich summary
+            if (breadChoice > 0) {
+                currentCustomSandwich.buildSandwichGUI(breadChoice, proteinChoice, vegChoice, sauceChoice, extraChoice);
+                
+                sf::Text summaryText(currentCustomSandwich.getSummary(), font, 16);
+                summaryText.setFillColor(sf::Color::White);
+                summaryText.setPosition(50, 200);
+                window.draw(summaryText);
+                
+                // Draw ingredient stock
+                sf::Text stockText(ingredientInventory.getStockDisplayText(), font, 14);
+                stockText.setFillColor(sf::Color::Green);
+                stockText.setPosition(50, 400);
+                window.draw(stockText);
+            }
+        }
+        
+        // Draw navigation buttons
+        if (customSandwichStep > 0) {
+            prevStepButton->draw(window);
+        }
+        
+        if (customSandwichStep < 5) {
+            nextStepButton->draw(window);
+        }
+        
+        cancelCustomButton->draw(window);
     }
-    
-    // Draw navigation buttons
-    if (customSandwichStep > 0) {
-        prevStepButton->draw(window);
-    }
-    
-    if (customSandwichStep < 5) {
-        nextStepButton->draw(window);
-    }
-    
-    cancelCustomButton->draw(window);
-}
 
     void drawRechargeScreen() {
         sf::Text title("Recharge Balance", font, 35);
