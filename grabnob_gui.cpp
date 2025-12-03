@@ -26,9 +26,8 @@ public:
     bool isHovered;
     bool isClicked;
 
-    Button(float x, float y, float width, float height, const string& label, sf::Font& font) 
-        : text(font) {
-        shape.setPosition(sf::Vector2f(x, y));
+    Button(float x, float y, float width, float height, const string& label, sf::Font& font) {
+        shape.setPosition(x, y);
         shape.setSize(sf::Vector2f(width, height));
         normalColor = sf::Color(70, 130, 180);
         hoverColor = sf::Color(100, 149, 237);
@@ -36,21 +35,22 @@ public:
         shape.setFillColor(normalColor);
 
         text.setString(label);
+        text.setFont(font);
         text.setCharacterSize(20);
         text.setFillColor(sf::Color::White);
         
         sf::FloatRect textBounds = text.getLocalBounds();
-        text.setPosition(sf::Vector2f(
-            x + (width - textBounds.size.x) / 2.f,
-            y + (height - textBounds.size.y) / 2.f - 5
-        ));
+        text.setPosition(
+            x + (width - textBounds.width) / 2.f,
+            y + (height - textBounds.height) / 2.f - 5
+        );
         
         isHovered = false;
         isClicked = false;
     }
 
     void update(sf::Vector2i mousePos) {
-        isHovered = shape.getGlobalBounds().contains(sf::Vector2f(mousePos));
+        isHovered = shape.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos));
         
         if (isClicked) {
             shape.setFillColor(clickColor);
@@ -62,17 +62,15 @@ public:
     }
 
     bool isPressed(sf::Event& event, sf::Vector2i mousePos) {
-        if (event.is<sf::Event::MouseButtonPressed>()) {
-            const auto& mouseBtn = event.getIf<sf::Event::MouseButtonPressed>();
-            if (mouseBtn && mouseBtn->button == sf::Mouse::Button::Left && isHovered) {
+        if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left && isHovered) {
                 isClicked = true;
                 return false;
             }
         }
         
-        if (event.is<sf::Event::MouseButtonReleased>()) {
-            const auto& mouseBtn = event.getIf<sf::Event::MouseButtonReleased>();
-            if (mouseBtn && mouseBtn->button == sf::Mouse::Button::Left && isClicked) {
+        if (event.type == sf::Event::MouseButtonReleased) {
+            if (event.mouseButton.button == sf::Mouse::Left && isClicked) {
                 isClicked = false;
                 return isHovered;
             }
@@ -98,22 +96,23 @@ public:
     sf::Clock blinkClock;
     bool showCursor;
 
-    InputBox(float x, float y, float width, float height, const string& labelText, sf::Font& font, bool password = false)
-        : displayText(font), label(font) {
-        box.setPosition(sf::Vector2f(x, y));
+    InputBox(float x, float y, float width, float height, const string& labelText, sf::Font& font, bool password = false) {
+        box.setPosition(x, y);
         box.setSize(sf::Vector2f(width, height));
         box.setFillColor(sf::Color::White);
         box.setOutlineThickness(2);
         box.setOutlineColor(sf::Color(100, 100, 100));
 
         label.setString(labelText);
+        label.setFont(font);
         label.setCharacterSize(18);
         label.setFillColor(sf::Color::White);
-        label.setPosition(sf::Vector2f(x, y - 30));
+        label.setPosition(x, y - 30);
 
+        displayText.setFont(font);
         displayText.setCharacterSize(20);
         displayText.setFillColor(sf::Color::Black);
-        displayText.setPosition(sf::Vector2f(x + 10, y + 10));
+        displayText.setPosition(x + 10, y + 10);
 
         content = "";
         isActive = false;
@@ -133,16 +132,13 @@ public:
     void handleInput(sf::Event& event) {
         if (!isActive) return;
 
-        if (event.is<sf::Event::TextEntered>()) {
-            const auto& textEntered = event.getIf<sf::Event::TextEntered>();
-            if (textEntered) {
-                if (textEntered->unicode == 8 && content.length() > 0) { // Backspace
-                    content.pop_back();
-                } else if (textEntered->unicode >= 32 && textEntered->unicode < 128) {
-                    content += static_cast<char>(textEntered->unicode);
-                }
-                updateDisplay();
+        if (event.type == sf::Event::TextEntered) {
+            if (event.text.unicode == 8 && content.length() > 0) { // Backspace
+                content.pop_back();
+            } else if (event.text.unicode >= 32 && event.text.unicode < 128) {
+                content += static_cast<char>(event.text.unicode);
             }
+            updateDisplay();
         }
     }
 
@@ -170,7 +166,7 @@ public:
             sf::RectangleShape cursor(sf::Vector2f(2, 20));
             cursor.setFillColor(sf::Color::Black);
             sf::FloatRect textBounds = displayText.getGlobalBounds();
-            cursor.setPosition(sf::Vector2f(textBounds.position.x + textBounds.size.x + 2, box.getPosition().y + 10));
+            cursor.setPosition(textBounds.left + textBounds.width + 2, box.getPosition().y + 10);
             window.draw(cursor);
         }
     }
@@ -312,18 +308,20 @@ private:
     string messageContent;
 
 public:
-    GrabNobGUI() : window(sf::VideoMode({800, 600}), "GrabNob Bakery System"), 
-                   currentScreen(LOGIN), selectedCategory(-1), messageText(font) {
+    GrabNobGUI() : window(sf::VideoMode(800, 600), "GrabNob Bakery System"), 
+                   currentScreen(LOGIN), selectedCategory(-1) {
         window.setFramerateLimit(60);
         
-        if (!font.openFromFile("arial.ttf")) {
+        if (!font.loadFromFile("arial.ttf")) {
             // Try alternative font paths
-            if (!font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
-                if (!font.openFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
+            if (!font.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
+                if (!font.loadFromFile("/System/Library/Fonts/Supplemental/Arial.ttf")) {
                     cout << "Error: Could not load font!" << endl;
                 }
             }
         }
+        
+        messageText.setFont(font);
         
         initLoginScreen();
         initRegisterScreen();
@@ -332,7 +330,7 @@ public:
         
         messageText.setCharacterSize(16);
         messageText.setFillColor(sf::Color::Red);
-        messageText.setPosition(sf::Vector2f(50, 550));
+        messageText.setPosition(50, 550);
     }
 
     ~GrabNobGUI() {
@@ -402,9 +400,11 @@ public:
         loginIDBox->handleInput(event);
         loginPassBox->handleInput(event);
         
-        if (event.is<sf::Event::MouseButtonPressed>()) {
-            loginIDBox->setActive(loginIDBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            loginPassBox->setActive(loginPassBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+        if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                loginIDBox->setActive(loginIDBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                loginPassBox->setActive(loginPassBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+            }
         }
         
         if (loginButton->isPressed(event, mousePos)) {
@@ -432,13 +432,15 @@ public:
         regEmailBox->handleInput(event);
         regBalanceBox->handleInput(event);
         
-        if (event.is<sf::Event::MouseButtonPressed>()) {
-            regIDBox->setActive(regIDBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            regUsernameBox->setActive(regUsernameBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            regPassBox->setActive(regPassBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            regPhoneBox->setActive(regPhoneBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            regEmailBox->setActive(regEmailBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
-            regBalanceBox->setActive(regBalanceBox->box.getGlobalBounds().contains(sf::Vector2f(mousePos)));
+        if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                regIDBox->setActive(regIDBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                regUsernameBox->setActive(regUsernameBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                regPassBox->setActive(regPassBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                regPhoneBox->setActive(regPhoneBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                regEmailBox->setActive(regEmailBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+                regBalanceBox->setActive(regBalanceBox->box.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos)));
+            }
         }
         
         if (registerButton->isPressed(event, mousePos)) {
@@ -518,9 +520,9 @@ public:
     }
 
     void drawLoginScreen() {
-        sf::Text title(font, "GrabNob Bakery System", 40);
+        sf::Text title("GrabNob Bakery System", font, 40);
         title.setFillColor(sf::Color::White);
-        title.setPosition(sf::Vector2f(150, 80));
+        title.setPosition(150, 80);
         window.draw(title);
         
         loginIDBox->draw(window);
@@ -530,9 +532,9 @@ public:
     }
 
     void drawRegisterScreen() {
-        sf::Text title(font, "Register New Account", 35);
+        sf::Text title("Register New Account", font, 35);
         title.setFillColor(sf::Color::White);
-        title.setPosition(sf::Vector2f(200, 30));
+        title.setPosition(200, 30);
         window.draw(title);
         
         regIDBox->draw(window);
@@ -546,14 +548,14 @@ public:
     }
 
     void drawMenuScreen() {
-        sf::Text title(font, "Main Menu", 40);
+        sf::Text title("Main Menu", font, 40);
         title.setFillColor(sf::Color::White);
-        title.setPosition(sf::Vector2f(300, 80));
+        title.setPosition(300, 80);
         window.draw(title);
         
-        sf::Text balanceText(font, "Balance: Rs." + to_string((int)currentStudent.balance), 20);
+        sf::Text balanceText("Balance: Rs." + to_string((int)currentStudent.balance), font, 20);
         balanceText.setFillColor(sf::Color::Green);
-        balanceText.setPosition(sf::Vector2f(300, 140));
+        balanceText.setPosition(300, 140);
         window.draw(balanceText);
         
         for (auto btn : menuButtons) {
@@ -563,9 +565,9 @@ public:
     }
 
     void drawBrowseScreen() {
-        sf::Text title(font, "Browse Menu", 35);
+        sf::Text title("Browse Menu", font, 35);
         title.setFillColor(sf::Color::White);
-        title.setPosition(sf::Vector2f(280, 30));
+        title.setPosition(280, 30);
         window.draw(title);
         
         for (auto btn : categoryButtons) {
@@ -585,23 +587,24 @@ public:
         while (window.isOpen()) {
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);
             
-            while (auto event = window.pollEvent()) {
-                if (event->is<sf::Event::Closed>()) {
+            sf::Event event;
+            while (window.pollEvent(event)) {
+                if (event.type == sf::Event::Closed) {
                     window.close();
                 }
                 
                 switch (currentScreen) {
                     case LOGIN:
-                        handleLoginScreen(*event, mousePos);
+                        handleLoginScreen(event, mousePos);
                         break;
                     case REGISTER:
-                        handleRegisterScreen(*event, mousePos);
+                        handleRegisterScreen(event, mousePos);
                         break;
                     case MENU:
-                        handleMenuScreen(*event, mousePos);
+                        handleMenuScreen(event, mousePos);
                         break;
                     case BROWSE:
-                        handleBrowseScreen(*event, mousePos);
+                        handleBrowseScreen(event, mousePos);
                         break;
                 }
             }

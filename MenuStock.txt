@@ -1,4 +1,4 @@
-Sandwich||2
+Sandwich||5
 Burger||4
 Pizza Slice||5
 Make Your Own Sandwich||5
