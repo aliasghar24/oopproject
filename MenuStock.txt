@@ -1,11 +1,11 @@
-Sandwich||5
+Sandwich||3
 Burger||4
 Pizza Slice||5
 Make Your Own Sandwich||5
 Cookie||5
-Brownie||5
+Brownie||3
 Donut||4
 Coffee||5
-Pepsi||5
+Pepsi||3
 Tea||5
 Juice||2
