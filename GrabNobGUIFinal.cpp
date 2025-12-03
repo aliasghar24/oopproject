@@ -788,7 +788,7 @@ public:
             Item("Sandwich", 350, 5),
             Item("Burger", 400, 5),
             Item("Pizza Slice", 450, 5),
-            Item("Make Your Own Sandwich", 100, 5, true)
+            Item("Make Your Own Sandwich", 100, 1, true)
         };
         
         vector<Item> sweets = {
